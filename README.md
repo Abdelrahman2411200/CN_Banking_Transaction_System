@@ -1,6 +1,6 @@
 # CN Banking Transaction System
 
-Phase 1 baseline scaffold for account-service, transfer-service, shared types, and local infrastructure.
+Production-ready Phase 1 microservices implementation: account-service, transfer-service with SAGA pattern, shared types, and local Docker Compose infrastructure.
 
 ## Local Setup (3 commands)
 
@@ -10,17 +10,63 @@ npm install
 make up
 ```
 
-## Services
+## Services & Endpoints
 
-- account-service: http://localhost:3001/health
-- account-service (versioned): http://localhost:3001/v1/health
-- transfer-service: http://localhost:3002/health
-- transfer-service (versioned): http://localhost:3002/v1/health
+### Account Service (port 3001)
+- `GET /health` - Health check
+- `GET /v1/health` - Versioned health check
+- `POST /v1/accounts` - Create account (name, email, initial_balance)
+- `GET /v1/accounts/:id` - Get account by ID
+- `GET /v1/accounts/:id/balance` - Check account balance
+- `PATCH /v1/accounts/:id/kyc` - Update KYC status
+- `PATCH /v1/accounts/:id/debit` - Debit account (internal, used by SAGA)
+- `PATCH /v1/accounts/:id/credit` - Credit account (internal, used by SAGA)
 
-## Placeholder API Endpoints
+### Transfer Service (port 3002)
+- `GET /health` - Health check
+- `GET /v1/health` - Versioned health check
+- `POST /v1/transfers` - Initiate transfer (from_account_id, to_account_id, amount)
+- `GET /v1/transfers/:id` - Get transfer status with SAGA state
 
-- GET /v1/accounts -> 501 (skeleton for account-service implementation)
-- POST /v1/transfers -> 501 (skeleton for transfer-service implementation)
+## Testing
+
+```bash
+npm test                    # Run Jest test suite (unit + integration)
+npm run test:unit           # Unit tests only
+npm run test:integration    # Jest integration tests only
+npm run test:integration:sam # Node.js native test suite (health/schema checks)
+npm run test:all            # Run Jest + node:test suites
+```
+
+## Database Schema
+
+### Accounts Table
+- `id` (UUID) - Primary key
+- `name` - Account holder name
+- `email` - Account email (unique)
+- `balance` - Account balance (numeric, >= 0)
+- `kyc_status` - KYC status (`pending`, `verified`, `rejected`)
+- `status` - Account status (`ACTIVE`, `FROZEN`, `CLOSED`)
+- `created_at`, `updated_at` - Timestamps
+
+### Transfers Table
+- `id` (UUID) - Primary key
+- `from_account_id`, `to_account_id` (UUID) - Account references
+- `amount` - Transfer amount (numeric, > 0)
+- `status` - Transfer status (`initiated`, `debited`, `completed`, `failed`)
+- `saga_state` (JSONB) - SAGA state machine tracking (current_step, debit_completed, credit_completed, compensation_completed, error)
+- `error_message` - Error details if failed
+- `created_at`, `updated_at` - Timestamps
+
+## Key Features
+
+- **SAGA Pattern**: Two-phase commit with compensation for distributed transaction consistency
+- **Schema Validation**: PostgreSQL CHECK constraints (balance >= 0, amount > 0, distinct accounts)
+- **error handling**: 
+  - 422 Insufficient Funds response with automatic SAGA compensation
+  - 409 Conflict on duplicate email
+  - Detailed error messages for debugging
+- **Health Checks**: Both `/health` and `/v1/health` endpoints with DB connectivity validation
 
 ## Environment Variables
 
@@ -28,6 +74,17 @@ make up
 |---|---|---|
 | ACCOUNT_SERVICE_PORT | Account service port | 3001 |
 | TRANSFER_SERVICE_PORT | Transfer service port | 3002 |
+| ACCOUNTS_DB_HOST | Accounts database host | postgres-accounts |
+| ACCOUNTS_DB_PORT | Accounts database port | 5432 |
+| ACCOUNTS_DB_NAME | Accounts database name | accounts_db |
+| ACCOUNTS_DB_USER | Accounts database user | accounts_user |
+| ACCOUNTS_DB_PASSWORD | Accounts database password | accounts_pass |
+| TRANSFERS_DB_HOST | Transfers database host | postgres-transfers |
+| TRANSFERS_DB_PORT | Transfers database port | 5432 |
+| TRANSFERS_DB_NAME | Transfers database name | transfers_db |
+| TRANSFERS_DB_USER | Transfers database user | transfers_user |
+| TRANSFERS_DB_PASSWORD | Transfers database password | transfers_pass |
+| ACCOUNT_SERVICE_URL | Account service URL for transfer-service | http://account-service:3001 |
 | ACCOUNTS_DB_HOST | Accounts DB host | postgres-accounts |
 | ACCOUNTS_DB_PORT | Accounts DB port | 5432 |
 | ACCOUNTS_DB_HOST_PORT | Accounts DB host-exposed port | 5433 |

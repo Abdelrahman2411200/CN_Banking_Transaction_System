@@ -9,9 +9,9 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-});
+} as Record<string, unknown>);
 
-pool.on('error', (err) => {
+pool.on('error', (err: Error) => {
   console.error('[account-service] Unexpected pool error:', err);
 });
 

@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import pool from './db';
 import { TransferSaga } from './saga';
@@ -20,6 +21,15 @@ const uuidSchema = z.string().uuid();
 
 // ─── Health Check ────────────────────────────────────────────
 router.get('/health', async (_req: Request, res: Response) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).json({ status: 'healthy', service: 'transfer-service' });
+  } catch {
+    res.status(503).json({ status: 'unhealthy', service: 'transfer-service' });
+  }
+});
+
+router.get('/v1/health', async (_req: Request, res: Response) => {
   try {
     await pool.query('SELECT 1');
     res.status(200).json({ status: 'healthy', service: 'transfer-service' });

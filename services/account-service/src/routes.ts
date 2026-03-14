@@ -1,7 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import pool from './db';
-import type { Account, ApiResponse, CreateAccountDto, UpdateKycDto } from '@cn-banking/shared-types';
+import type { Account, ApiResponse } from '@cn-banking/shared-types';
 
 const router = Router();
 
@@ -24,6 +25,15 @@ const uuidSchema = z.string().uuid();
 
 // ─── Health Check ────────────────────────────────────────────
 router.get('/health', async (_req: Request, res: Response) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).json({ status: 'healthy', service: 'account-service' });
+  } catch {
+    res.status(503).json({ status: 'unhealthy', service: 'account-service' });
+  }
+});
+
+router.get('/v1/health', async (_req: Request, res: Response) => {
   try {
     await pool.query('SELECT 1');
     res.status(200).json({ status: 'healthy', service: 'account-service' });

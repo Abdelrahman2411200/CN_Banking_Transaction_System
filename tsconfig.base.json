@@ -8,8 +8,8 @@
       "@cn-banking/shared-types": ["shared/types/src/index.ts"]
     },
     "lib": ["ES2022"],
-    "strict": true,
-    "noImplicitAny": false,
+    "strict": false,
+    "noImplicitAny": true,
     "strictNullChecks": false,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,

@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance } from 'axios';
 import pool from './db';
 import type { Transfer, SagaState, ApiResponse, Account } from '@cn-banking/shared-types';
 
