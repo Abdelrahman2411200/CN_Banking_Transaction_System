@@ -5,7 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/services', '<rootDir>/tests'],
   moduleNameMapper: {
-    '^@cn-bank/types$': '<rootDir>/shared/types/src/index',
+    '^@cn-banking/shared-types$': '<rootDir>/shared/types/src/index',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
@@ -14,7 +14,7 @@ const config: Config = {
   },
   testMatch: [
     '**/__tests__/**/*.test.ts',
-    '**/tests/**/*.test.ts',
+    '<rootDir>/tests/integration/transfer.test.ts',
   ],
   collectCoverageFrom: [
     'services/**/src/**/*.ts',

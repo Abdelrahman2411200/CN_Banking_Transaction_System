@@ -89,7 +89,7 @@ describe('Transfer Integration Tests', () => {
             amount: params?.[2],
             status: 'initiated',
             saga_state: JSON.parse(params?.[3] as string),
-            error_message: null,
+            error_message: null as string | null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }],

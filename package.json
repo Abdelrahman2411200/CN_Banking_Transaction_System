@@ -15,7 +15,7 @@
     "test": "jest --forceExit --detectOpenHandles",
     "test:unit": "jest --testPathPattern=\"__tests__\" --forceExit",
     "test:integration": "jest --testPathPattern=\"tests/integration\" --forceExit",
-    "test:sam": "node --test tests/integration",
+    "test:sam": "node --test tests/integration/*.test.mjs",
     "test:all": "npm run test && npm run test:sam"
   },
   "devDependencies": {
@@ -29,6 +29,7 @@
     "pg": "^8.16.3",
     "supertest": "^7.2.2",
     "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.25.0"
   }

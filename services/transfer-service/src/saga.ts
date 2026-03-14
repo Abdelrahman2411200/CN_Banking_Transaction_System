@@ -153,7 +153,9 @@ export class TransferSaga {
     );
 
     if (!response.data.success) {
-      throw new Error(response.data.error || 'Debit failed');
+      const error = response.data.error;
+      const message = typeof error === 'object' ? error.message : (error || 'Debit failed');
+      throw new Error(message);
     }
   }
 
@@ -164,7 +166,9 @@ export class TransferSaga {
     );
 
     if (!response.data.success) {
-      throw new Error(response.data.error || 'Credit failed');
+      const error = response.data.error;
+      const message = typeof error === 'object' ? error.message : (error || 'Credit failed');
+      throw new Error(message);
     }
   }
 }
