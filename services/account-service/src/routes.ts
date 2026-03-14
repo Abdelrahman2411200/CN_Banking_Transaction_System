@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import pool from './db';
-import type { Account, ApiResponse, CreateAccountDto, UpdateKycDto } from '@cn-bank/types';
+import type { Account, ApiResponse, CreateAccountDto, UpdateKycDto } from '@cn-banking/shared-types';
 
 const router = Router();
 

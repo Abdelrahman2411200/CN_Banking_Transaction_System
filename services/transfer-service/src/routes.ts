@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import pool from './db';
 import { TransferSaga } from './saga';
-import type { Transfer, ApiResponse } from '@cn-bank/types';
+import type { Transfer, ApiResponse } from '@cn-banking/shared-types';
 
 const router = Router();
 const saga = new TransferSaga();

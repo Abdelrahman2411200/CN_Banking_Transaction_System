@@ -9,18 +9,27 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
+    "dev": "npm run -ws dev",
+    "lint": "npm run -ws lint",
+    "typecheck": "npm run -ws typecheck",
     "test": "jest --forceExit --detectOpenHandles",
     "test:unit": "jest --testPathPattern=\"__tests__\" --forceExit",
     "test:integration": "jest --testPathPattern=\"tests/integration\" --forceExit",
-    "lint": "eslint . --ext .ts"
+    "test:sam": "node --test tests/integration",
+    "test:all": "npm run test && npm run test:sam"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.0",
+    "@types/node": "^22.13.10",
     "@types/supertest": "^7.2.0",
+    "eslint": "^9.21.0",
+    "globals": "^15.15.0",
     "jest": "^29.7.0",
+    "pg": "^8.16.3",
     "supertest": "^7.2.2",
     "ts-jest": "^29.1.2",
-    "typescript": "^5.4.0"
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.25.0"
   }
 }

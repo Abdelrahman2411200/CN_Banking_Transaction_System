@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import pool from './db';
-import type { Transfer, SagaState, ApiResponse, Account } from '@cn-bank/types';
+import type { Transfer, SagaState, ApiResponse, Account } from '@cn-banking/shared-types';
 
 const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
 

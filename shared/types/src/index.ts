@@ -1,5 +1,22 @@
+// ─── Shared Base Types ──────────────────────────────────────
+
+/**
+ * Standard API response wrapper
+ */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string | {
+    code: string;
+    message: string;
+  };
+  message?: string;
+}
+
 // ─── Account ────────────────────────────────────────────────
+
 export type KycStatus = 'pending' | 'verified' | 'rejected';
+export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
 
 export interface Account {
   id: string;
@@ -7,6 +24,7 @@ export interface Account {
   email: string;
   balance: number;
   kyc_status: KycStatus;
+  status?: AccountStatus;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +40,7 @@ export interface UpdateKycDto {
 }
 
 // ─── Transfer ───────────────────────────────────────────────
+
 export type TransferStatus =
   | 'initiated'
   | 'debited'
@@ -47,18 +66,11 @@ export interface CreateTransferDto {
 }
 
 // ─── SAGA ───────────────────────────────────────────────────
+
 export interface SagaState {
   current_step: 'debit' | 'credit' | 'compensate' | 'done';
   debit_completed: boolean;
   credit_completed: boolean;
   compensation_completed?: boolean;
   error?: string;
-}
-
-// ─── API Response ───────────────────────────────────────────
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
 }

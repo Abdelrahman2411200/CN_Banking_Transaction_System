@@ -1,15 +1,20 @@
 {
-  "name": "@cn-bank/account-service",
+  "name": "@cn-banking/account-service",
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest --forceExit"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@cn-banking/shared-types": "1.0.0",
+    "express": "^4.21.2",
     "pg": "^8.11.3",
     "uuid": "^9.0.0",
     "zod": "^3.22.4"
@@ -18,6 +23,6 @@
     "@types/express": "^4.17.21",
     "@types/pg": "^8.10.9",
     "@types/uuid": "^9.0.7",
-    "ts-node": "^10.9.2"
+    "tsx": "^4.19.3"
   }
 }
