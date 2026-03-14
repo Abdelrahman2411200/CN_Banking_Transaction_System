@@ -1,0 +1,96 @@
+services:
+  postgres-accounts:
+    image: postgres:16-alpine
+    container_name: postgres-accounts
+    environment:
+      POSTGRES_DB: ${ACCOUNTS_DB_NAME:-accounts_db}
+      POSTGRES_USER: ${ACCOUNTS_DB_USER:-accounts_user}
+      POSTGRES_PASSWORD: ${ACCOUNTS_DB_PASSWORD:-accounts_pass}
+    ports:
+      - "${ACCOUNTS_DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - postgres_accounts_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ACCOUNTS_DB_USER:-accounts_user} -d ${ACCOUNTS_DB_NAME:-accounts_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  postgres-transfers:
+    image: postgres:16-alpine
+    container_name: postgres-transfers
+    environment:
+      POSTGRES_DB: ${TRANSFERS_DB_NAME:-transfers_db}
+      POSTGRES_USER: ${TRANSFERS_DB_USER:-transfers_user}
+      POSTGRES_PASSWORD: ${TRANSFERS_DB_PASSWORD:-transfers_pass}
+    ports:
+      - "${TRANSFERS_DB_HOST_PORT:-5434}:5432"
+    volumes:
+      - postgres_transfers_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TRANSFERS_DB_USER:-transfers_user} -d ${TRANSFERS_DB_NAME:-transfers_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  db-init:
+    build:
+      context: ./infra/db-init
+      dockerfile: Dockerfile
+    container_name: db-init
+    environment:
+      ACCOUNTS_DB_HOST: ${ACCOUNTS_DB_HOST:-postgres-accounts}
+      ACCOUNTS_DB_PORT: ${ACCOUNTS_DB_PORT:-5432}
+      ACCOUNTS_DB_NAME: ${ACCOUNTS_DB_NAME:-accounts_db}
+      ACCOUNTS_DB_USER: ${ACCOUNTS_DB_USER:-accounts_user}
+      ACCOUNTS_DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD:-accounts_pass}
+      TRANSFERS_DB_HOST: ${TRANSFERS_DB_HOST:-postgres-transfers}
+      TRANSFERS_DB_PORT: ${TRANSFERS_DB_PORT:-5432}
+      TRANSFERS_DB_NAME: ${TRANSFERS_DB_NAME:-transfers_db}
+      TRANSFERS_DB_USER: ${TRANSFERS_DB_USER:-transfers_user}
+      TRANSFERS_DB_PASSWORD: ${TRANSFERS_DB_PASSWORD:-transfers_pass}
+    depends_on:
+      postgres-accounts:
+        condition: service_healthy
+      postgres-transfers:
+        condition: service_healthy
+
+  account-service:
+    build:
+      context: .
+      dockerfile: ./services/account-service/Dockerfile
+    container_name: account-service
+    environment:
+      ACCOUNT_SERVICE_PORT: ${ACCOUNT_SERVICE_PORT:-3001}
+    ports:
+      - "${ACCOUNT_SERVICE_PORT:-3001}:${ACCOUNT_SERVICE_PORT:-3001}"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${ACCOUNT_SERVICE_PORT:-3001}/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  transfer-service:
+    build:
+      context: .
+      dockerfile: ./services/transfer-service/Dockerfile
+    container_name: transfer-service
+    environment:
+      TRANSFER_SERVICE_PORT: ${TRANSFER_SERVICE_PORT:-3002}
+    ports:
+      - "${TRANSFER_SERVICE_PORT:-3002}:${TRANSFER_SERVICE_PORT:-3002}"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${TRANSFER_SERVICE_PORT:-3002}/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_accounts_data:
+  postgres_transfers_data:

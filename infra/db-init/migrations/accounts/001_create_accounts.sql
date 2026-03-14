@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS accounts (
+  id UUID PRIMARY KEY,
+  customer_id VARCHAR(64) NOT NULL,
+  account_number VARCHAR(32) UNIQUE NOT NULL,
+  currency VARCHAR(3) NOT NULL,
+  balance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+  status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  kyc_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT chk_balance_non_negative CHECK (balance >= 0)
+);
