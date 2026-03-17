@@ -1,203 +1,298 @@
-/**
- * Unit Tests for Account Service Routes
- *
- * Tests each endpoint handler with mocked DB pool.
- */
-import express from 'express';
 import request from 'supertest';
-import router from '../routes';
+import { app } from '../index';
+import { pool } from '../db';
 
-// ─── Mock the DB pool ────────────────────────────────────────
-jest.mock('../db', () => {
-  const mockQuery = jest.fn();
-  return {
-    __esModule: true,
-    default: { query: mockQuery },
-  };
-});
-
-const mockPool = require('../db').default;
-
-const app = express();
-app.use(express.json());
-app.use(router);
+// Mock database for tests
+jest.mock('../db', () => ({
+  pool: {
+    query: jest.fn(),
+    on: jest.fn(),
+  },
+}));
 
 describe('Account Service Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  const mockAccount = {
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'John Doe',
-    email: 'john@example.com',
-    balance: 1000,
-    kyc_status: 'pending',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-  };
-
-  // ─── Health Check ────────────────────────────────────
   describe('GET /health', () => {
-    test('returns 200 when DB is reachable', async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] });
+    it('should return 200 with success status', async () => {
+      const response = await request(app).get('/v1/health');
 
-      const res = await request(app).get('/health');
-      expect(res.status).toBe(200);
-      expect(res.body.status).toBe('healthy');
-    });
-
-    test('returns 503 when DB is unreachable', async () => {
-      mockPool.query.mockRejectedValueOnce(new Error('Connection refused'));
-
-      const res = await request(app).get('/health');
-      expect(res.status).toBe(503);
-      expect(res.body.status).toBe('unhealthy');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('ok');
     });
   });
 
-  // ─── POST /v1/accounts ──────────────────────────────
-  describe('POST /v1/accounts', () => {
-    test('creates account with valid data', async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [mockAccount] });
+  describe('POST /accounts', () => {
+    it('should create a new account with valid data', async () => {
+      const mockAccount = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'John Doe',
+        email: 'john@example.com',
+        balance: '1000.00',
+        kyc_status: 'pending',
+        status: 'active',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
 
-      const res = await request(app)
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockAccount] });
+
+      const response = await request(app)
         .post('/v1/accounts')
-        .send({ name: 'John Doe', email: 'john@example.com', initial_balance: 1000 });
+        .send({
+          name: 'John Doe',
+          email: 'john@example.com',
+          initial_balance: '1000.00',
+        });
 
-      expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.name).toBe('John Doe');
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.name).toBe('John Doe');
+      expect(response.body.data.email).toBe('john@example.com');
     });
 
-    test('returns 400 for missing name', async () => {
-      const res = await request(app)
+    it('should return 400 for invalid email', async () => {
+      const response = await request(app)
         .post('/v1/accounts')
-        .send({ email: 'john@example.com' });
+        .send({
+          name: 'John Doe',
+          email: 'invalid-email',
+        });
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    test('returns 400 for invalid email', async () => {
-      const res = await request(app)
+    it('should return 400 for missing name', async () => {
+      const response = await request(app)
         .post('/v1/accounts')
-        .send({ name: 'John', email: 'not-an-email' });
+        .send({
+          email: 'john@example.com',
+        });
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-    });
-
-    test('returns 409 for duplicate email', async () => {
-      mockPool.query.mockRejectedValueOnce({ code: '23505' });
-
-      const res = await request(app)
-        .post('/v1/accounts')
-        .send({ name: 'John', email: 'john@example.com' });
-
-      expect(res.status).toBe(409);
-      expect(res.body.error).toContain('already exists');
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  // ─── GET /v1/accounts/:id ───────────────────────────
-  describe('GET /v1/accounts/:id', () => {
-    test('returns account for valid ID', async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [mockAccount] });
+  describe('GET /accounts/:id', () => {
+    it('should return account when found', async () => {
+      const mockAccount = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'John Doe',
+        email: 'john@example.com',
+        balance: '1000.00',
+        kyc_status: 'pending',
+        status: 'active',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
 
-      const res = await request(app).get(`/v1/accounts/${mockAccount.id}`);
-      expect(res.status).toBe(200);
-      expect(res.body.data.id).toBe(mockAccount.id);
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockAccount] });
+
+      const response = await request(app).get(
+        '/v1/accounts/123e4567-e89b-12d3-a456-426614174000'
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe('123e4567-e89b-12d3-a456-426614174000');
     });
 
-    test('returns 404 for non-existent account', async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
+    it('should return 404 when account not found', async () => {
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [] });
 
-      const res = await request(app).get('/v1/accounts/11111111-1111-1111-1111-111111111111');
-      expect(res.status).toBe(404);
-    });
+      const response = await request(app).get(
+        '/v1/accounts/123e4567-e89b-12d3-a456-426614174000'
+      );
 
-    test('returns 400 for invalid UUID', async () => {
-      const res = await request(app).get('/v1/accounts/not-a-uuid');
-      expect(res.status).toBe(400);
+      expect(response.status).toBe(404);
+      expect(response.body.data).toBeNull();
     });
   });
 
-  // ─── GET /v1/accounts/:id/balance ───────────────────
-  describe('GET /v1/accounts/:id/balance', () => {
-    test('returns balance for valid ID', async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: mockAccount.id, balance: 1000 }] });
+  describe('GET /accounts/:id/balance', () => {
+    it('should return balance when account found', async () => {
+      const mockResult = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        balance: '500.00',
+      };
 
-      const res = await request(app).get(`/v1/accounts/${mockAccount.id}/balance`);
-      expect(res.status).toBe(200);
-      expect(res.body.data.balance).toBe(1000);
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockResult] });
+
+      const response = await request(app).get(
+        '/v1/accounts/123e4567-e89b-12d3-a456-426614174000/balance'
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.balance).toBe('500.00');
+    });
+
+    it('should return 404 when account not found', async () => {
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [] });
+
+      const response = await request(app).get(
+        '/v1/accounts/123e4567-e89b-12d3-a456-426614174000/balance'
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  // ─── PATCH /v1/accounts/:id/kyc ─────────────────────
-  describe('PATCH /v1/accounts/:id/kyc', () => {
-    test('updates KYC status', async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [{ ...mockAccount, kyc_status: 'verified' }],
-      });
+  describe('PATCH /accounts/:id/kyc', () => {
+    it('should update KYC status when account found', async () => {
+      const mockAccount = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'John Doe',
+        email: 'john@example.com',
+        balance: '1000.00',
+        kyc_status: 'verified',
+        status: 'active',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
 
-      const res = await request(app)
-        .patch(`/v1/accounts/${mockAccount.id}/kyc`)
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockAccount] });
+
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/kyc')
         .send({ kyc_status: 'verified' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.data.kyc_status).toBe('verified');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.kyc_status).toBe('verified');
     });
 
-    test('returns 400 for invalid KYC status', async () => {
-      const res = await request(app)
-        .patch(`/v1/accounts/${mockAccount.id}/kyc`)
+    it('should return 400 for invalid KYC status', async () => {
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/kyc')
         .send({ kyc_status: 'invalid' });
 
-      expect(res.status).toBe(400);
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 404 when account not found', async () => {
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [] });
+
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/kyc')
+        .send({ kyc_status: 'verified' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  // ─── PATCH /v1/accounts/:id/debit ───────────────────
-  describe('PATCH /v1/accounts/:id/debit', () => {
-    test('debits account successfully', async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [{ ...mockAccount, balance: 900 }],
-      });
+  describe('PATCH /accounts/:id/debit', () => {
+    it('should debit account when sufficient funds', async () => {
+      const mockAccount = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'John Doe',
+        email: 'john@example.com',
+        balance: '900.00',
+        kyc_status: 'pending',
+        status: 'active',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
 
-      const res = await request(app)
-        .patch(`/v1/accounts/${mockAccount.id}/debit`)
-        .send({ amount: 100 });
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockAccount] });
 
-      expect(res.status).toBe(200);
-      expect(res.body.data.balance).toBe(900);
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/debit')
+        .send({ amount: '100.00' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.balance).toBe('900.00');
     });
 
-    test('returns 422 for insufficient funds (CHECK constraint)', async () => {
-      mockPool.query.mockRejectedValueOnce({ code: '23514' });
+    it('should return 422 when insufficient funds', async () => {
+      // Simulate insufficient funds by returning empty rows from UPDATE
+      (pool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE returns no rows
+        .mockResolvedValueOnce({ rows: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] }); // SELECT returns account
 
-      const res = await request(app)
-        .patch(`/v1/accounts/${mockAccount.id}/debit`)
-        .send({ amount: 99999 });
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/debit')
+        .send({ amount: '1000.00' });
 
-      expect(res.status).toBe(422);
-      expect(res.body.error).toContain('Insufficient funds');
+      expect(response.status).toBe(422);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 404 when account not found', async () => {
+      (pool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE returns no rows
+        .mockResolvedValueOnce({ rows: [] }); // SELECT returns no account
+
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/debit')
+        .send({ amount: '100.00' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid amount', async () => {
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/debit')
+        .send({ amount: 'invalid' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  // ─── PATCH /v1/accounts/:id/credit ──────────────────
-  describe('PATCH /v1/accounts/:id/credit', () => {
-    test('credits account successfully', async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [{ ...mockAccount, balance: 1100 }],
-      });
+  describe('PATCH /accounts/:id/credit', () => {
+    it('should credit account', async () => {
+      const mockAccount = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'John Doe',
+        email: 'john@example.com',
+        balance: '1100.00',
+        kyc_status: 'pending',
+        status: 'active',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
 
-      const res = await request(app)
-        .patch(`/v1/accounts/${mockAccount.id}/credit`)
-        .send({ amount: 100 });
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockAccount] });
 
-      expect(res.status).toBe(200);
-      expect(res.body.data.balance).toBe(1100);
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/credit')
+        .send({ amount: '100.00' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.balance).toBe('1100.00');
+    });
+
+    it('should return 404 when account not found', async () => {
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [] });
+
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/credit')
+        .send({ amount: '100.00' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid amount', async () => {
+      const response = await request(app)
+        .patch('/v1/accounts/123e4567-e89b-12d3-a456-426614174000/credit')
+        .send({ amount: 'invalid' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 });

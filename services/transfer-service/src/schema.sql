@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS transfers (
   amount            NUMERIC(15, 2) NOT NULL
                       CHECK (amount > 0),
   status            VARCHAR(20) NOT NULL DEFAULT 'initiated'
-                      CHECK (status IN ('initiated', 'debited', 'completed', 'failed')),
+                      CHECK (status IN ('initiated', 'completed', 'failed', 'compensating')),
   saga_state        JSONB NOT NULL DEFAULT '{}',
   error_message     TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),

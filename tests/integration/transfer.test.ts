@@ -1,181 +1,197 @@
 /**
- * Integration Tests for Transfer Flow
- *
- * These tests validate end-to-end transfer behavior by mocking:
- *   - The account-service HTTP endpoints (via axios mock)
- *   - The PostgreSQL database (via pg Pool mock)
- *
- * Test cases:
- *   1. Insufficient funds → 422, balances unchanged
- *   2. Happy-path transfer → both balances updated atomically
+ * Integration tests for transfer service
+ * Tests the SAGA pattern and account service interactions
  */
-import express from 'express';
-import request from 'supertest';
 
-// ─── Shared Mock Variables ───────────────────────────────────
-let fromBalance = 1000;
-let toBalance = 500;
-const fromAccountId = '11111111-1111-1111-1111-111111111111';
-const toAccountId   = '22222222-2222-2222-2222-222222222222';
+import axios, { AxiosError } from 'axios';
+import { Pool } from 'pg';
 
-// ─── Mock axios BEFORE importing routes ──────────────────────
-jest.mock('axios', () => {
-  return {
-    create: jest.fn().mockReturnValue({
-      patch: jest.fn().mockImplementation(async (url: string, body: any) => {
-        const amount = body.amount;
+const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
+const TRANSFER_SERVICE_URL = process.env.TRANSFER_SERVICE_URL || 'http://localhost:3002';
 
-        if (url.includes(fromAccountId) && url.includes('/debit')) {
-          if (fromBalance - amount < 0) {
-            throw {
-              response: { status: 422, data: { success: false, error: 'Insufficient funds' } },
-            };
-          }
-          fromBalance -= amount;
-          return { data: { success: true, data: { id: fromAccountId, balance: fromBalance } } };
-        }
-
-        if (url.includes(toAccountId) && url.includes('/credit')) {
-          toBalance += amount;
-          return { data: { success: true, data: { id: toAccountId, balance: toBalance } } };
-        }
-
-        if (url.includes(fromAccountId) && url.includes('/credit')) {
-          fromBalance += amount;
-          return { data: { success: true, data: { id: fromAccountId, balance: fromBalance } } };
-        }
-
-        throw new Error(`Unexpected URL: ${url}`);
-      })
-    }),
-    patch: jest.fn(),
-  };
+// Clean test data between runs
+beforeAll(async () => {
+  const accountsPool = new Pool({
+    host: process.env.ACCOUNTS_DB_HOST || 'localhost',
+    port: Number(process.env.ACCOUNTS_DB_HOST_PORT || 5433),
+    database: process.env.ACCOUNTS_DB_NAME || 'accounts_db',
+    user: process.env.ACCOUNTS_DB_USER || 'accounts_user',
+    password: process.env.ACCOUNTS_DB_PASSWORD || 'accounts_pass',
+  });
+  const transfersPool = new Pool({
+    host: process.env.TRANSFERS_DB_HOST || 'localhost',
+    port: Number(process.env.TRANSFERS_DB_HOST_PORT || 5434),
+    database: process.env.TRANSFERS_DB_NAME || 'transfers_db',
+    user: process.env.TRANSFERS_DB_USER || 'transfers_user',
+    password: process.env.TRANSFERS_DB_PASSWORD || 'transfers_pass',
+  });
+  await transfersPool.query('TRUNCATE transfers CASCADE');
+  await accountsPool.query('TRUNCATE accounts CASCADE');
+  await accountsPool.end();
+  await transfersPool.end();
 });
 
-// ─── Mock the transfer-service DB pool ───────────────────────
-jest.mock('../../services/transfer-service/src/db', () => {
-  const mockQuery = jest.fn();
-  return {
-    __esModule: true,
-    default: { query: mockQuery },
-  };
-});
+// Helper to create an account
+async function createAccount(name: string, email: string, balance: string) {
+  const response = await axios.post(`${ACCOUNT_SERVICE_URL}/v1/accounts`, {
+    name,
+    email,
+    initial_balance: balance,
+  });
+  return response.data.data;
+}
 
-import transferRouter from '../../services/transfer-service/src/routes';
+// Helper to get account balance
+async function getAccountBalance(accountId: string) {
+  const response = await axios.get(
+    `${ACCOUNT_SERVICE_URL}/v1/accounts/${accountId}/balance`
+  );
+  return response.data.data.balance;
+}
 
-const mockPool = require('../../services/transfer-service/src/db').default;
-
-// Build a test Express app
-const app = express();
-app.use(express.json());
-app.use(transferRouter);
+// Helper to create a transfer
+async function createTransfer(fromId: string, toId: string, amount: string) {
+  try {
+    const response = await axios.post(`${TRANSFER_SERVICE_URL}/v1/transfers`, {
+      from_account_id: fromId,
+      to_account_id: toId,
+      amount,
+    });
+    return response.data.data;
+  } catch (error: any) {
+    throw error;
+  }
+}
 
 describe('Transfer Integration Tests', () => {
-  // Simulated account balances
-  beforeEach(() => {
-    jest.clearAllMocks();
-    fromBalance = 1000;
-    toBalance = 500;
+  describe('T089 (FR-028): Insufficient funds returns 422 and balances unchanged', () => {
+    it('should return 422 when from_account has insufficient funds', async () => {
+      // Create two accounts
+      const fromAccount = await createAccount('Sender', 'sender@test.com', '50.00');
+      const toAccount = await createAccount('Receiver', 'receiver@test.com', '100.00');
 
+      const initialFromBalance = await getAccountBalance(fromAccount.id);
+      const initialToBalance = await getAccountBalance(toAccount.id);
 
-    // Mock DB: INSERT and UPDATE for transfers
-    mockPool.query.mockImplementation((sql: string, params?: any[]) => {
-      if (sql.includes('INSERT INTO transfers')) {
-        return {
-          rows: [{
-            id: 'transfer-int-001',
-            from_account_id: params?.[0],
-            to_account_id: params?.[1],
-            amount: params?.[2],
-            status: 'initiated',
-            saga_state: JSON.parse(params?.[3] as string),
-            error_message: null as string | null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }],
-        };
+      // Attempt transfer of more than available
+      let transferFailed = false;
+      let statusCode = 0;
+
+      try {
+        await createTransfer(fromAccount.id, toAccount.id, '100.00');
+      } catch (error: any) {
+        transferFailed = true;
+        statusCode = (error as AxiosError)?.response?.status || 0;
       }
 
-      if (sql.includes('UPDATE transfers')) {
-        return {
-          rows: [{
-            id: params?.[3],
-            from_account_id: fromAccountId,
-            to_account_id: toAccountId,
-            amount: 0,
-            status: params?.[0],
-            saga_state: JSON.parse(params?.[1] as string),
-            error_message: params?.[2],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }],
-        };
-      }
+      expect(transferFailed).toBe(true);
+      expect(statusCode).toBe(422);
 
-      if (sql.includes('SELECT 1')) {
-        return { rows: [{ '?column?': 1 }] };
-      }
+      // Verify balances are unchanged
+      const finalFromBalance = await getAccountBalance(fromAccount.id);
+      const finalToBalance = await getAccountBalance(toAccount.id);
 
-      return { rows: [] };
+      expect(finalFromBalance).toBe(initialFromBalance);
+      expect(finalToBalance).toBe(initialToBalance);
     });
   });
 
-  // ─── Test 1: Insufficient Funds ─────────────────────────────
-  test('insufficient funds returns 422, balances unchanged', async () => {
-    const initialFrom = fromBalance;
-    const initialTo = toBalance;
+  describe('T090 (FR-029): Happy path transfer updates both balances atomically', () => {
+    it('should successfully transfer funds and update both account balances', async () => {
+      // Create two accounts
+      const fromAccount = await createAccount('Sender', 'sender2@test.com', '1000.00');
+      const toAccount = await createAccount('Receiver', 'receiver2@test.com', '500.00');
 
-    const res = await request(app)
-      .post('/v1/transfers')
-      .send({
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount: 5000, // more than fromBalance (1000)
-      });
+      // Transfer funds
+      const transfer = await createTransfer(fromAccount.id, toAccount.id, '100.00');
 
-    expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error).toContain('Insufficient funds');
+      // Verify transfer completed
+      expect(transfer.status).toBe('completed');
+      expect(transfer.from_account_id).toBe(fromAccount.id);
+      expect(transfer.to_account_id).toBe(toAccount.id);
+      expect(transfer.amount).toBe('100.00');
 
-    // Balances should be unchanged
-    expect(fromBalance).toBe(initialFrom);
-    expect(toBalance).toBe(initialTo);
+      // Verify final balances
+      const finalFromBalance = await getAccountBalance(fromAccount.id);
+      const finalToBalance = await getAccountBalance(toAccount.id);
+
+      expect(finalFromBalance).toBe('900.00');
+      expect(finalToBalance).toBe('600.00');
+    });
   });
 
-  // ─── Test 2: Happy-Path Transfer ────────────────────────────
-  test('happy-path transfer updates both balances atomically', async () => {
-    const transferAmount = 200;
+  describe('T091: Transfer SAGA state is correctly tracked', () => {
+    it('should track all SAGA states in completed transfer', async () => {
+      const fromAccount = await createAccount('Sender', 'sender3@test.com', '1000.00');
+      const toAccount = await createAccount('Receiver', 'receiver3@test.com', '500.00');
 
-    const res = await request(app)
-      .post('/v1/transfers')
-      .send({
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount: transferAmount,
-      });
+      const transfer = await createTransfer(fromAccount.id, toAccount.id, '50.00');
 
-    expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe('completed');
-    expect(res.body.data.saga_state.debit_completed).toBe(true);
-    expect(res.body.data.saga_state.credit_completed).toBe(true);
+      const sagaState = transfer.saga_state;
 
-    // Balances should be updated
-    expect(fromBalance).toBe(800);   // 1000 - 200
-    expect(toBalance).toBe(700);     // 500 + 200
+      expect(sagaState.current_step).toBe('completed');
+      expect(sagaState.debit_completed).toBe(true);
+      expect(sagaState.credit_completed).toBe(true);
+      expect(sagaState.compensation_completed).toBe(false);
+      expect(sagaState.error).toBeNull();
+    });
   });
 
-  // ─── Test 3: Self-transfer rejected ─────────────────────────
-  test('transfer to same account returns 400', async () => {
-    const res = await request(app)
-      .post('/v1/transfers')
-      .send({
-        from_account_id: fromAccountId,
-        to_account_id: fromAccountId,
-        amount: 100,
-      });
+  describe('T092: GET transfer retrieves correct state', () => {
+    it('should retrieve transfer with correct saga state', async () => {
+      const fromAccount = await createAccount('Sender', 'sender4@test.com', '1000.00');
+      const toAccount = await createAccount('Receiver', 'receiver4@test.com', '500.00');
 
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
+      const transfer = await createTransfer(fromAccount.id, toAccount.id, '75.00');
+
+      // Retrieve the transfer
+      const response = await axios.get(
+        `${TRANSFER_SERVICE_URL}/v1/transfers/${transfer.id}`
+      );
+
+      const retrievedTransfer = response.data.data;
+
+      expect(retrievedTransfer.id).toBe(transfer.id);
+      expect(retrievedTransfer.status).toBe('completed');
+      expect(retrievedTransfer.amount).toBe('75.00');
+    });
+  });
+
+  describe('T093: Invalid transfer request returns 400', () => {
+    it('should return 400 for invalid UUIDs', async () => {
+      let error: any;
+
+      try {
+        await axios.post(`${TRANSFER_SERVICE_URL}/v1/transfers`, {
+          from_account_id: 'invalid-uuid',
+          to_account_id: 'also-invalid',
+          amount: '100.00',
+        });
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBeDefined();
+      expect((error as AxiosError)?.response?.status).toBe(400);
+    });
+
+    it('should return 400 when from and to are the same', async () => {
+      const account = await createAccount('Test', 'test@test.com', '1000.00');
+
+      let error: any;
+
+      try {
+        await axios.post(`${TRANSFER_SERVICE_URL}/v1/transfers`, {
+          from_account_id: account.id,
+          to_account_id: account.id,
+          amount: '100.00',
+        });
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBeDefined();
+      expect((error as AxiosError)?.response?.status).toBe(400);
+    });
   });
 });

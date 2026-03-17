@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS accounts (
                   CHECK (balance >= 0),
   kyc_status    VARCHAR(20)  NOT NULL DEFAULT 'pending'
                   CHECK (kyc_status IN ('pending', 'verified', 'rejected')),
+  status        VARCHAR(20)  NOT NULL DEFAULT 'active'
+                  CHECK (status IN ('active', 'inactive', 'suspended')),
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

@@ -1,18 +1,15 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'accounts_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-} as Record<string, unknown>);
-
-pool.on('error', (err: Error) => {
-  console.error('[account-service] Unexpected pool error:', err);
+  host: process.env.DB_HOST || process.env.ACCOUNTS_DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || process.env.ACCOUNTS_DB_PORT || '5433', 10),
+  database: process.env.DB_NAME || process.env.ACCOUNTS_DB_NAME || 'accounts_db',
+  user: process.env.DB_USER || process.env.ACCOUNTS_DB_USER || 'accounts_user',
+  password: process.env.DB_PASSWORD || process.env.ACCOUNTS_DB_PASSWORD || 'accounts_pass',
 });
 
-export default pool;
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+export { pool };

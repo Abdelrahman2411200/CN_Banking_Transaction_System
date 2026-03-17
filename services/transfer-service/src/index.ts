@@ -1,14 +1,35 @@
 import express from 'express';
-import router from './routes';
+import { router } from './routes';
 
 const app = express();
-const port = Number(process.env.TRANSFER_SERVICE_PORT ?? process.env.PORT ?? 3002);
+const PORT = process.env.TRANSFER_SERVICE_PORT || 3002;
 
+// Middleware
 app.use(express.json());
-app.use(router);
 
-export const server = app.listen(port, () => {
-  console.log(`[transfer-service] running on ${port}`);
+// Routes
+app.use('/v1', router);
+
+// Health endpoint at root
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: { status: 'ok' },
+  });
 });
 
-export default app;
+// Start server
+const server = app.listen(PORT, () => {
+  console.log(`Transfer Service listening on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+export { app };

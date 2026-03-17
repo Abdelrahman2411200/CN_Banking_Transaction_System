@@ -1,118 +1,110 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { z } from 'zod';
-import pool from './db';
 import { TransferSaga } from './saga';
-import type { Transfer, ApiResponse } from '@cn-banking/shared-types';
+import { CreateTransferSchema } from '@cn-banking/shared-types';
+import type {
+  HealthResponse,
+  CreateTransferResponse,
+  GetTransferResponse,
+  ErrorResponse,
+} from '@cn-banking/shared-types';
 
 const router = Router();
 const saga = new TransferSaga();
 
-// ─── Validation Schemas ──────────────────────────────────────
-const createTransferSchema = z.object({
-  from_account_id: z.string().uuid(),
-  to_account_id: z.string().uuid(),
-  amount: z.number().positive(),
-}).refine(data => data.from_account_id !== data.to_account_id, {
-  message: 'Cannot transfer to the same account',
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  const response: HealthResponse = {
+    success: true,
+    data: {
+      status: 'ok',
+    },
+  };
+  res.status(200).json(response);
 });
 
-const uuidSchema = z.string().uuid();
-
-// ─── Health Check ────────────────────────────────────────────
-router.get('/health', async (_req: Request, res: Response) => {
+// POST /transfers - Create transfer
+router.post('/transfers', async (req: Request, res: Response) => {
   try {
-    await pool.query('SELECT 1');
-    res.status(200).json({ status: 'healthy', service: 'transfer-service' });
-  } catch {
-    res.status(503).json({ status: 'unhealthy', service: 'transfer-service' });
-  }
-});
+    const validation = CreateTransferSchema.safeParse(req.body);
 
-router.get('/v1/health', async (_req: Request, res: Response) => {
-  try {
-    await pool.query('SELECT 1');
-    res.status(200).json({ status: 'healthy', service: 'transfer-service' });
-  } catch {
-    res.status(503).json({ status: 'unhealthy', service: 'transfer-service' });
-  }
-});
-
-// ─── POST /v1/transfers — Initiate Transfer ──────────────────
-router.post('/v1/transfers', async (req: Request, res: Response) => {
-  try {
-    const parsed = createTransferSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
+    if (!validation.success) {
+      const response: ErrorResponse = {
         success: false,
-        error: parsed.error.errors.map(e => e.message).join(', '),
-      } as ApiResponse);
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: validation.error.message,
+        },
+      };
+      return res.status(400).json(response);
     }
 
-    const { from_account_id, to_account_id, amount } = parsed.data;
+    const { from_account_id, to_account_id, amount } = validation.data;
 
     const transfer = await saga.execute(from_account_id, to_account_id, amount);
 
-    if (transfer.status === 'failed') {
-      // Determine appropriate status code
-      const isInsufficientFunds = transfer.error_message?.includes('Insufficient funds');
-      const statusCode = isInsufficientFunds ? 422 : 500;
-
-      return res.status(statusCode).json({
-        success: false,
-        data: transfer,
-        error: transfer.error_message || 'Transfer failed',
-      } as ApiResponse<Transfer>);
-    }
-
-    return res.status(201).json({
+    const response: CreateTransferResponse = {
       success: true,
       data: transfer,
-      message: 'Transfer completed successfully',
-    } as ApiResponse<Transfer>);
-  } catch (err: any) {
-    console.error('[transfer-service] Transfer error:', err);
-    return res.status(500).json({
+    };
+    res.status(201).json(response);
+  } catch (error: any) {
+    console.error('Error creating transfer:', error);
+
+    // Check if it's an insufficient funds error (422)
+    if (error.response?.status === 422) {
+      const response: ErrorResponse = {
+        success: false,
+        error: {
+          code: 'INSUFFICIENT_FUNDS',
+          message: 'Insufficient funds for transfer',
+        },
+      };
+      return res.status(422).json(response);
+    }
+
+    const response: ErrorResponse = {
       success: false,
-      error: 'Internal server error',
-    } as ApiResponse);
+      error: {
+        code: 'TRANSFER_FAILED',
+        message: error.message || 'Failed to create transfer',
+      },
+    };
+    res.status(500).json(response);
   }
 });
 
-// ─── GET /v1/transfers/:id — Get Transfer Status ─────────────
-router.get('/v1/transfers/:id', async (req: Request, res: Response) => {
+// GET /transfers/:id - Get transfer by ID
+router.get('/transfers/:id', async (req: Request, res: Response) => {
   try {
-    const idParse = uuidSchema.safeParse(req.params.id);
-    if (!idParse.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid transfer ID format',
-      } as ApiResponse);
+    const { id } = req.params;
+
+    const transfer = await saga.getTransferById(id);
+
+    if (!transfer) {
+      const response: GetTransferResponse = {
+        success: true,
+        data: null,
+      };
+      return res.status(404).json(response);
     }
 
-    const result = await pool.query<Transfer>(
-      'SELECT * FROM transfers WHERE id = $1',
-      [req.params.id],
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Transfer not found',
-      } as ApiResponse);
-    }
-
-    return res.status(200).json({
+    const response: GetTransferResponse = {
       success: true,
-      data: result.rows[0],
-    } as ApiResponse<Transfer>);
-  } catch (err) {
-    console.error('[transfer-service] Get transfer error:', err);
-    return res.status(500).json({
+      data: transfer,
+    };
+    res.status(200).json(response);
+  } catch (error: any) {
+    console.error('Error getting transfer:', error);
+    const response: ErrorResponse = {
       success: false,
-      error: 'Internal server error',
-    } as ApiResponse);
+      error: {
+        code: 'DATABASE_ERROR',
+        message: error.message || 'Failed to get transfer',
+      },
+    };
+    res.status(500).json(response);
   }
 });
 
-export default router;
+export { router };
