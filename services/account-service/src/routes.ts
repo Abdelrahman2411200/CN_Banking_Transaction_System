@@ -17,7 +17,9 @@ import {
   UpdateKycStatusSchema,
   DebitAccountSchema,
   CreditAccountSchema,
+  EVENT_TYPES,
 } from '@cn-banking/shared-types';
+import { producer } from './kafka';
 
 const router = Router();
 
@@ -70,6 +72,21 @@ router.post('/accounts', async (req: Request, res: Response) => {
     ]);
 
     const account: Account = result.rows[0];
+
+    // Phase 2: Emit bank.account.created event
+    try {
+      await producer.emit(EVENT_TYPES.ACCOUNT_CREATED, account.id, {
+        accountId: account.id,
+        email: account.email,
+        name: account.name,
+        initialBalance: parseFloat(account.balance),
+        timestamp: now,
+      });
+    } catch (kafkaError) {
+      console.error('Failed to emit account.created event:', kafkaError);
+      // We don't fail the request, but we log it
+    }
+
     const response: CreateAccountResponse = {
       success: true,
       data: account,
@@ -371,6 +388,51 @@ router.patch('/accounts/:id/credit', async (req: Request, res: Response) => {
       error: {
         code: 'DATABASE_ERROR',
         message: error.message || 'Failed to credit account',
+      },
+    };
+    res.status(500).json(response);
+  }
+});
+
+// PATCH /accounts/:id/freeze - Freeze account (Phase 2)
+router.patch('/accounts/:id/freeze', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+
+    const query = `
+      UPDATE accounts
+      SET status = $1, updated_at = $2
+      WHERE id = $3
+      RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+    `;
+
+    const result = await pool.query(query, [AccountStatus.SUSPENDED, now, id]);
+
+    if (result.rows.length === 0) {
+      const response: ErrorResponse = {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Account not found',
+        },
+      };
+      return res.status(404).json(response);
+    }
+
+    const account: Account = result.rows[0];
+    const response: UpdateAccountResponse = {
+      success: true,
+      data: account,
+    };
+    res.status(200).json(response);
+  } catch (error: any) {
+    console.error('Error freezing account:', error);
+    const response: ErrorResponse = {
+      success: false,
+      error: {
+        code: 'DATABASE_ERROR',
+        message: error.message || 'Failed to freeze account',
       },
     };
     res.status(500).json(response);

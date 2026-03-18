@@ -5,7 +5,8 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
-      "@cn-banking/shared-types": ["shared/types/src/index.ts"]
+      "@cn-banking/shared-types": ["shared/types/src/index.ts"],
+      "@cn-banking/shared-kafka": ["shared/kafka/src/index.ts"]
     },
     "lib": ["ES2022"],
     "strict": false,

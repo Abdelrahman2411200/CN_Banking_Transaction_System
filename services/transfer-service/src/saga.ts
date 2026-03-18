@@ -5,11 +5,13 @@ import { pool } from './db';
 import {
   TransferStatus,
   SagaStep,
+  EVENT_TYPES,
 } from '@cn-banking/shared-types';
 import type {
   Transfer,
   SagaState,
 } from '@cn-banking/shared-types';
+import { producer } from './kafka';
 
 const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
 
@@ -48,6 +50,19 @@ export class TransferSaga {
       now,
       now,
     ]);
+
+    // Phase 2: Emit bank.transfer.initiated
+    try {
+      await producer.emit(EVENT_TYPES.TRANSFER_INITIATED, transferId, {
+        transferId,
+        fromAccountId,
+        toAccountId,
+        amount: parseFloat(amount),
+        timestamp: now,
+      });
+    } catch (kafkaError) {
+      console.error('Failed to emit transfer.initiated event:', kafkaError);
+    }
 
     try {
       // Step 1: Debit from source account
@@ -99,7 +114,22 @@ export class TransferSaga {
         transferId,
       ]);
 
-      return result.rows[0];
+      const transfer = result.rows[0];
+
+      // Phase 2: Emit bank.transfer.completed
+      try {
+        await producer.emit(EVENT_TYPES.TRANSFER_COMPLETED, transferId, {
+          transferId,
+          fromAccountId,
+          toAccountId,
+          amount: parseFloat(amount),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (kafkaError) {
+        console.error('Failed to emit transfer.completed event:', kafkaError);
+      }
+
+      return transfer;
     } catch (originalError: any) {
       // Compensation: Reverse debit if it was completed
       if (sagaState.debit_completed && !sagaState.compensation_completed) {
@@ -132,6 +162,18 @@ export class TransferSaga {
         new Date().toISOString(),
         transferId,
       ]);
+
+      // Phase 2: Emit bank.transfer.failed
+      try {
+        await producer.emit(EVENT_TYPES.TRANSFER_FAILED, transferId, {
+          transferId,
+          error: originalError.message,
+          reason: sagaState.error || 'Unknown error',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (kafkaError) {
+        console.error('Failed to emit transfer.failed event:', kafkaError);
+      }
 
       // Re-throw so the route can determine the correct HTTP status code
       throw originalError;

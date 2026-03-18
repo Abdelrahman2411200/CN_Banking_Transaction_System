@@ -4,10 +4,10 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY tsconfig.base.json ./
-COPY services/transfer-service ./services/transfer-service
+COPY services/ledger-service ./services/ledger-service
 COPY shared/types ./shared/types
 COPY shared/kafka ./shared/kafka
 
 RUN npm install
 
-CMD ["npm", "run", "--workspace", "@cn-banking/transfer-service", "dev"]
+CMD ["npm", "run", "--workspace", "@cn-banking/ledger-service", "dev"]
