@@ -33,6 +33,59 @@ services:
       timeout: 5s
       retries: 15
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./infra/mongodb/init-ledger.js:/docker-entrypoint-initdb.d/init-ledger.js:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand({ping:  1})'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-init:
+    build:
+      context: ./infra/kafka/kafka-init
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:29092
+
   db-init:
     build:
       context: ./infra/db-init
@@ -67,6 +120,7 @@ services:
       DB_NAME: ${ACCOUNTS_DB_NAME:-accounts_db}
       DB_USER: ${ACCOUNTS_DB_USER:-accounts_user}
       DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD:-accounts_pass}
+      KAFKA_BROKERS: kafka:29092
     ports:
       - "${ACCOUNT_SERVICE_PORT:-3001}:${ACCOUNT_SERVICE_PORT:-3001}"
     depends_on:
@@ -91,6 +145,7 @@ services:
       DB_USER: ${TRANSFERS_DB_USER:-transfers_user}
       DB_PASSWORD: ${TRANSFERS_DB_PASSWORD:-transfers_pass}
       ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service:3001}
+      KAFKA_BROKERS: kafka:29092
     ports:
       - "${TRANSFER_SERVICE_PORT:-3002}:${TRANSFER_SERVICE_PORT:-3002}"
     depends_on:
@@ -102,6 +157,68 @@ services:
       timeout: 5s
       retries: 10
 
+  ledger-service:
+    build:
+      context: .
+      dockerfile: services/ledger-service/Dockerfile
+    container_name: ledger-service
+    environment:
+      LEDGER_SERVICE_PORT: 3003
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DB_NAME: ledger_db
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "3003:3003"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  fraud-service:
+    build:
+      context: .
+      dockerfile: services/fraud-service/Dockerfile
+    container_name: fraud-service
+    environment:
+      FRAUD_SERVICE_PORT: 3004
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "3004:3004"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    environment:
+      NOTIFICATION_SERVICE_PORT: 3005
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "3005:3005"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_accounts_data:
   postgres_transfers_data:
+  mongodb_data:

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './events';
+
 // Enums
 export enum AccountKycStatus {
   PENDING = 'pending',

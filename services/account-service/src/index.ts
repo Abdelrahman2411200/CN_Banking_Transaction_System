@@ -1,5 +1,8 @@
 import express from 'express';
 import { router } from './routes';
+import { initKafka } from './kafka';
+
+initKafka();
 
 const app = express();
 const PORT = process.env.ACCOUNT_SERVICE_PORT || 3001;

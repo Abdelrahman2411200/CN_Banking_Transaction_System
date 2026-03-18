@@ -6,7 +6,8 @@ COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY services/account-service ./services/account-service
 COPY shared/types ./shared/types
+COPY shared/kafka ./shared/kafka
 
-RUN npm ci
+RUN npm install
 
 CMD ["npm", "run", "--workspace", "@cn-banking/account-service", "dev"]
