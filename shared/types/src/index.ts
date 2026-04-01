@@ -1,4 +1,18 @@
 import { z } from 'zod';
+export * from './events';
+export * from './mongo';
+export * from './outbox';
+
+const moneyRegex = /^\d+(\.\d{1,2})?$/;
+
+const nonNegativeMoneySchema = z
+  .string()
+  .regex(moneyRegex, 'Must be a decimal amount with up to 2 decimal places');
+
+const positiveMoneySchema = nonNegativeMoneySchema.refine(
+  (value) => Number(value) > 0,
+  'Amount must be greater than 0'
+);
 
 // Enums
 export enum AccountKycStatus {
@@ -18,6 +32,7 @@ export enum TransferStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   COMPENSATING = 'compensating',
+  COMPENSATION_FAILED = 'compensation_failed',
 }
 
 export enum SagaStep {
@@ -33,21 +48,9 @@ export interface Account {
   id: string;
   name: string;
   email: string;
-  balance: string; // NUMERIC 18,2 in DB, represented as string
+  balance: string;
   kyc_status: AccountKycStatus;
   status: AccountStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Transfer {
-  id: string;
-  from_account_id: string;
-  to_account_id: string;
-  amount: string; // NUMERIC 18,2 in DB, represented as string
-  status: TransferStatus;
-  saga_state: string; // JSON stringified SagaState
-  error_message: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +61,18 @@ export interface SagaState {
   credit_completed: boolean;
   compensation_completed: boolean;
   error: string | null;
+}
+
+export interface Transfer {
+  id: string;
+  from_account_id: string;
+  to_account_id: string;
+  amount: string;
+  status: TransferStatus;
+  saga_state: SagaState;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // DTOs - Request/Response
@@ -135,31 +150,30 @@ export interface HealthResponse {
 
 // Zod Schemas for validation
 export const CreateAccountSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
   email: z.string().email(),
-  initial_balance: z.string().optional(),
+  initial_balance: nonNegativeMoneySchema.optional(),
 });
 
 export const UpdateKycStatusSchema = z.object({
-  kyc_status: z.enum(['pending', 'verified', 'rejected']),
+  kyc_status: z.nativeEnum(AccountKycStatus),
 });
 
 export const DebitAccountSchema = z.object({
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  amount: positiveMoneySchema,
 });
 
 export const CreditAccountSchema = z.object({
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  amount: positiveMoneySchema,
 });
 
-export const CreateTransferSchema = z.object({
-  from_account_id: z.string().uuid(),
-  to_account_id: z.string().uuid(),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-}).refine(
-  (data) => data.from_account_id !== data.to_account_id,
-  {
+export const CreateTransferSchema = z
+  .object({
+    from_account_id: z.string().uuid(),
+    to_account_id: z.string().uuid(),
+    amount: positiveMoneySchema,
+  })
+  .refine((data) => data.from_account_id !== data.to_account_id, {
     message: 'from_account_id and to_account_id must be different',
     path: ['from_account_id'],
-  }
-);
+  });

@@ -4,8 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY tsconfig.base.json ./
-COPY services/account-service ./services/account-service
-COPY shared/types ./shared/types
+COPY services ./services
+COPY shared ./shared
 
 RUN npm ci
 

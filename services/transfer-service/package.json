@@ -16,6 +16,7 @@
     "@cn-banking/shared-types": "1.0.0",
     "axios": "^1.6.7",
     "express": "^4.21.2",
+    "kafkajs": "^2.2.4",
     "pg": "^8.11.3",
     "uuid": "^9.0.0",
     "zod": "^3.22.4"

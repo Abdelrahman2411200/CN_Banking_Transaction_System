@@ -1,271 +1,232 @@
-import axios from 'axios';
+import type { Pool, PoolClient } from 'pg';
 import { TransferSaga } from '../saga';
-import { pool } from '../db';
-import { TransferStatus, SagaStep, Transfer, SagaState } from '@cn-banking/shared-types';
+import { enqueueOutboxEvent } from '../outbox';
+import { KafkaTopics, SagaStep, TransferStatus } from '@cn-banking/shared-types';
+import type { Transfer } from '@cn-banking/shared-types';
 
-jest.mock('axios');
-jest.mock('../db', () => ({
-  pool: {
-    query: jest.fn(),
-    on: jest.fn(),
-  },
+jest.mock('../outbox', () => ({
+  enqueueOutboxEvent: jest.fn(),
+  startOutboxPublisher: jest.fn(),
+  stopOutboxPublisher: jest.fn(),
 }));
 
 describe('TransferSaga', () => {
-  let saga: TransferSaga;
   const fromAccountId = '123e4567-e89b-12d3-a456-426614174001';
   const toAccountId = '123e4567-e89b-12d3-a456-426614174002';
   const amount = '100.00';
 
+  const buildPool = () => {
+    const clientQuery = jest.fn();
+    const client = {
+      query: clientQuery,
+      release: jest.fn(),
+    } as unknown as PoolClient;
+
+    const db = {
+      connect: jest.fn().mockResolvedValue(client),
+      query: jest.fn().mockResolvedValue(undefined),
+    } as unknown as Pool;
+
+    const httpClient = { patch: jest.fn() };
+    const saga = new TransferSaga(db, httpClient);
+
+    return { saga, db, client, clientQuery, httpClient };
+  };
+
+  const wireTransactionalQueries = (clientQuery: jest.Mock, updates: Transfer[]): void => {
+    let updateIndex = 0;
+
+    clientQuery.mockImplementation(async (queryText: string) => {
+      if (queryText === 'BEGIN' || queryText === 'COMMIT' || queryText === 'ROLLBACK') {
+        return undefined;
+      }
+
+      if (queryText.includes('INSERT INTO transfers')) {
+        return { rows: [{ id: 'transfer-123' }] };
+      }
+
+      if (queryText.includes('RETURNING id, from_account_id')) {
+        const next = updates[updateIndex];
+        updateIndex += 1;
+        return { rows: next ? [next] : [] };
+      }
+
+      return { rows: [] };
+    });
+  };
+
   beforeEach(() => {
-    saga = new TransferSaga();
     jest.clearAllMocks();
   });
 
-  describe('T084 (FR-027): Compensation fires when credit fails', () => {
-    it('should call compensation when credit fails after debit succeeds', async () => {
-      const mockAxios = axios as jest.Mocked<typeof axios>;
+  it('queues a transfer initiated event when the saga starts', async () => {
+    const { saga, client, clientQuery, httpClient } = buildPool();
+    wireTransactionalQueries(clientQuery, [buildCompletedTransfer()]);
+    httpClient.patch.mockResolvedValue({ status: 200, data: {} });
 
-      // Mock: debit succeeds (200)
-      mockAxios.patch.mockImplementation((url: string) => {
-        if (url.includes('debit')) {
-          return Promise.resolve({ status: 200, data: {} });
-        }
-        // credit fails (422)
-        if (url.includes('credit')) {
-          const error = new Error('Credit failed');
-          (error as any).response = { status: 422 };
-          return Promise.reject(error);
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
+    await saga.execute(fromAccountId, toAccountId, amount);
 
-      // Mock database queries
-      const sagaStateObj: SagaState = {
-        current_step: SagaStep.COMPENSATION,
-        debit_completed: true,
-        credit_completed: false,
-        compensation_completed: true,
-        error: 'Credit failed: Error: Credit failed',
-      };
-
-      const mockTransfer: Transfer = {
-        id: 'transfer-123',
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
+    expect(enqueueOutboxEvent).toHaveBeenCalledWith(
+      client,
+      KafkaTopics.transferInitiated,
+      'transfer-123',
+      expect.objectContaining({
+        transferId: 'transfer-123',
+        fromAccountId,
+        toAccountId,
         amount,
-        status: TransferStatus.FAILED,
-        saga_state: JSON.stringify(sagaStateObj),
-        error_message: 'Credit failed: Error: Credit failed',
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: '2025-01-01T00:00:00Z',
-      };
-
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockTransfer] });
-
-      const result = await saga.execute(fromAccountId, toAccountId, amount);
-
-      // Assertions
-      expect(result.status).toBe(TransferStatus.FAILED);
-
-      const sagaState = JSON.parse(result.saga_state);
-      expect(sagaState.debit_completed).toBe(true);
-      expect(sagaState.credit_completed).toBe(false);
-      expect(sagaState.compensation_completed).toBe(true);
-
-      // Verify debit was called
-      expect(mockAxios.patch).toHaveBeenCalledWith(
-        expect.stringContaining('debit'),
-        { amount }
-      );
-
-      // Verify credit was called
-      expect(mockAxios.patch).toHaveBeenCalledWith(
-        expect.stringContaining('credit'),
-        { amount }
-      );
-
-      // Verify compensation was called
-      const patchCalls = (mockAxios.patch as jest.Mock).mock.calls;
-      const compensationCall = patchCalls.find((call) => call[0].includes('credit') && patchCalls.indexOf(call) > 0);
-      expect(compensationCall).toBeDefined();
-    });
+      })
+    );
   });
 
-  describe('T085: Debit fails immediately - no compensation', () => {
-    it('should not call compensation when debit fails', async () => {
-      const mockAxios = axios as jest.Mocked<typeof axios>;
+  it('queues a transfer completed event after a successful saga', async () => {
+    const { saga, client, clientQuery, httpClient } = buildPool();
+    wireTransactionalQueries(clientQuery, [buildCompletedTransfer()]);
+    httpClient.patch.mockResolvedValue({ status: 200, data: {} });
 
-      // Mock: debit fails
-      mockAxios.patch.mockImplementation((url: string) => {
-        if (url.includes('debit')) {
-          const error = new Error('Debit failed');
-          (error as any).response = { status: 500 };
-          return Promise.reject(error);
-        }
-        return Promise.reject(new Error('Credit should not be called'));
-      });
+    const transfer = await saga.execute(fromAccountId, toAccountId, amount);
 
-      const sagaStateObj: SagaState = {
-        current_step: SagaStep.DEBIT,
-        debit_completed: false,
-        credit_completed: false,
-        compensation_completed: false,
-        error: 'Debit failed: Error: Debit failed',
-      };
-
-      const mockTransfer: Transfer = {
-        id: 'transfer-123',
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount,
-        status: TransferStatus.FAILED,
-        saga_state: JSON.stringify(sagaStateObj),
-        error_message: 'Debit failed: Error: Debit failed',
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: '2025-01-01T00:00:00Z',
-      };
-
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockTransfer] });
-
-      const result = await saga.execute(fromAccountId, toAccountId, amount);
-
-      expect(result.status).toBe(TransferStatus.FAILED);
-
-      const sagaState = JSON.parse(result.saga_state);
-      expect(sagaState.debit_completed).toBe(false);
-      expect(sagaState.credit_completed).toBe(false);
-      expect(sagaState.compensation_completed).toBe(false);
-
-      // Credit should never be called
-      const patchCalls = (mockAxios.patch as jest.Mock).mock.calls;
-      const creditCalls = patchCalls.filter((call) => call[0].includes('credit'));
-      expect(creditCalls.length).toBe(0);
-    });
+    expect(transfer.status).toBe(TransferStatus.COMPLETED);
+    expect(enqueueOutboxEvent).toHaveBeenLastCalledWith(
+      client,
+      KafkaTopics.transferCompleted,
+      'transfer-123',
+      expect.objectContaining({
+        transferId: 'transfer-123',
+        completedAt: expect.any(String),
+      })
+    );
   });
 
-  describe('T086: Happy path - all steps succeed', () => {
-    it('should complete transfer successfully when all steps succeed', async () => {
-      const mockAxios = axios as jest.Mocked<typeof axios>;
-
-      // Mock: all calls succeed
-      mockAxios.patch.mockResolvedValue({ status: 200, data: {} });
-
-      const sagaStateObj: SagaState = {
-        current_step: SagaStep.COMPLETED,
-        debit_completed: true,
-        credit_completed: true,
-        compensation_completed: false,
-        error: null,
-      };
-
-      const mockTransfer: Transfer = {
-        id: 'transfer-123',
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount,
-        status: TransferStatus.COMPLETED,
-        saga_state: JSON.stringify(sagaStateObj),
-        error_message: null,
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: '2025-01-01T00:00:00Z',
-      };
-
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockTransfer] });
-
-      const result = await saga.execute(fromAccountId, toAccountId, amount);
-
-      expect(result.status).toBe(TransferStatus.COMPLETED);
-
-      const sagaState = JSON.parse(result.saga_state);
-      expect(sagaState.debit_completed).toBe(true);
-      expect(sagaState.credit_completed).toBe(true);
-      expect(sagaState.compensation_completed).toBe(false);
-      expect(sagaState.error).toBeNull();
+  it('queues a failed event when debit fails', async () => {
+    const { saga, client, clientQuery, httpClient } = buildPool();
+    wireTransactionalQueries(clientQuery, [buildFailedTransfer('Insufficient funds', false)]);
+    const debitError = Object.assign(new Error('Insufficient funds'), {
+      response: { status: 422 },
     });
+    httpClient.patch.mockRejectedValue(debitError);
+
+    await expect(saga.execute(fromAccountId, toAccountId, amount)).rejects.toThrow('Insufficient funds');
+
+    expect(enqueueOutboxEvent).toHaveBeenLastCalledWith(
+      client,
+      KafkaTopics.transferFailed,
+      'transfer-123',
+      expect.objectContaining({
+        reason: 'Insufficient funds',
+      })
+    );
   });
 
-  describe('T087: Insufficient funds - debit fails with 422', () => {
-    it('should return 422 error when debit fails with insufficient funds', async () => {
-      const mockAxios = axios as jest.Mocked<typeof axios>;
+  it('queues a failed event after compensation succeeds', async () => {
+    const { saga, client, clientQuery, httpClient } = buildPool();
+    wireTransactionalQueries(clientQuery, [
+      buildCompensatingTransfer(),
+      buildFailedTransfer('Credit failed', true),
+    ]);
 
-      // Mock: debit fails with 422 (insufficient funds)
-      mockAxios.patch.mockImplementation((url: string) => {
-        if (url.includes('debit')) {
-          const error = new Error('Insufficient funds');
-          (error as any).response = { status: 422 };
-          return Promise.reject(error);
-        }
-        return Promise.reject(new Error('Credit should not be called'));
-      });
+    httpClient.patch
+      .mockResolvedValueOnce({ status: 200, data: {} })
+      .mockRejectedValueOnce(new Error('Credit failed'))
+      .mockResolvedValueOnce({ status: 200, data: {} });
 
-      const sagaStateObj: SagaState = {
-        current_step: SagaStep.DEBIT,
-        debit_completed: false,
-        credit_completed: false,
-        compensation_completed: false,
-        error: 'Insufficient funds',
-      };
+    await expect(saga.execute(fromAccountId, toAccountId, amount)).rejects.toThrow('Credit failed');
 
-      const mockTransfer: Transfer = {
-        id: 'transfer-123',
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount,
-        status: TransferStatus.FAILED,
-        saga_state: JSON.stringify(sagaStateObj),
-        error_message: 'Insufficient funds',
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: '2025-01-01T00:00:00Z',
-      };
-
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockTransfer] });
-
-      const result = await saga.execute(fromAccountId, toAccountId, amount);
-
-      expect(result.status).toBe(TransferStatus.FAILED);
-
-      const sagaState = JSON.parse(result.saga_state);
-      expect(sagaState.error).toBe('Insufficient funds');
-      expect(sagaState.debit_completed).toBe(false);
-    });
+    expect(enqueueOutboxEvent).toHaveBeenLastCalledWith(
+      client,
+      KafkaTopics.transferFailed,
+      'transfer-123',
+      expect.objectContaining({
+        reason: 'Credit failed',
+      })
+    );
   });
 
-  describe('getTransferById', () => {
-    it('should return transfer when found', async () => {
-      const sagaStateObj: SagaState = {
-        current_step: SagaStep.COMPLETED,
-        debit_completed: true,
-        credit_completed: true,
-        compensation_completed: false,
-        error: null,
-      };
+  it('queues a failed event with combined error when compensation fails', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { saga, client, clientQuery, httpClient } = buildPool();
+    wireTransactionalQueries(clientQuery, [
+      buildCompensatingTransfer(),
+      buildCompensationFailedTransfer(),
+    ]);
 
-      const mockTransfer: Transfer = {
-        id: 'transfer-123',
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount,
-        status: TransferStatus.COMPLETED,
-        saga_state: JSON.stringify(sagaStateObj),
-        error_message: null,
-        created_at: '2025-01-01T00:00:00Z',
-        updated_at: '2025-01-01T00:00:00Z',
-      };
+    httpClient.patch
+      .mockResolvedValueOnce({ status: 200, data: {} })
+      .mockRejectedValueOnce(new Error('Credit failed'))
+      .mockRejectedValueOnce(new Error('Compensation failed'));
 
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [mockTransfer] });
+    await expect(saga.execute(fromAccountId, toAccountId, amount)).rejects.toThrow('Credit failed');
 
-      const result = await saga.getTransferById('transfer-123');
+    expect(enqueueOutboxEvent).toHaveBeenLastCalledWith(
+      client,
+      KafkaTopics.transferFailed,
+      'transfer-123',
+      expect.objectContaining({
+        reason: 'Credit failed: Credit failed; compensation failed: Compensation failed',
+      })
+    );
 
-      expect(result).toEqual(mockTransfer);
-    });
-
-    it('should return null when transfer not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValue({ rows: [] });
-
-      const result = await saga.getTransferById('non-existent-transfer');
-
-      expect(result).toBeNull();
-    });
+    consoleSpy.mockRestore();
   });
+});
+
+const baseTransfer = (): Omit<Transfer, 'status' | 'saga_state' | 'error_message'> => ({
+  id: 'transfer-123',
+  from_account_id: '123e4567-e89b-12d3-a456-426614174001',
+  to_account_id: '123e4567-e89b-12d3-a456-426614174002',
+  amount: '100.00',
+  created_at: '2025-01-01T00:00:00Z',
+  updated_at: '2025-01-01T00:00:00Z',
+});
+
+const buildCompletedTransfer = (): Transfer => ({
+  ...baseTransfer(),
+  status: TransferStatus.COMPLETED,
+  saga_state: {
+    current_step: SagaStep.COMPLETED,
+    debit_completed: true,
+    credit_completed: true,
+    compensation_completed: false,
+    error: null,
+  },
+  error_message: null,
+});
+
+const buildCompensatingTransfer = (): Transfer => ({
+  ...baseTransfer(),
+  status: TransferStatus.COMPENSATING,
+  saga_state: {
+    current_step: SagaStep.COMPENSATION,
+    debit_completed: true,
+    credit_completed: false,
+    compensation_completed: false,
+    error: 'Credit failed',
+  },
+  error_message: 'Credit failed',
+});
+
+const buildFailedTransfer = (reason: string, compensated: boolean): Transfer => ({
+  ...baseTransfer(),
+  status: TransferStatus.FAILED,
+  saga_state: {
+    current_step: compensated ? SagaStep.COMPENSATION : SagaStep.DEBIT,
+    debit_completed: compensated,
+    credit_completed: false,
+    compensation_completed: compensated,
+    error: reason,
+  },
+  error_message: reason,
+});
+
+const buildCompensationFailedTransfer = (): Transfer => ({
+  ...baseTransfer(),
+  status: TransferStatus.COMPENSATION_FAILED,
+  saga_state: {
+    current_step: SagaStep.COMPENSATION,
+    debit_completed: true,
+    credit_completed: false,
+    compensation_completed: false,
+    error: 'Credit failed: Credit failed; compensation failed: Compensation failed',
+  },
+  error_message: 'Credit failed: Credit failed; compensation failed: Compensation failed',
 });

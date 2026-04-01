@@ -9,5 +9,11 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node -e \"console.log('No tests for shared types yet')\""
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "mongodb": "^6.15.0",
+    "pg": "^8.11.3",
+    "zod": "^3.22.4"
   }
 }

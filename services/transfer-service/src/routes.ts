@@ -1,44 +1,43 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { isAxiosError } from 'axios';
+import { z } from 'zod';
 import { TransferSaga } from './saga';
 import { CreateTransferSchema } from '@cn-banking/shared-types';
 import type {
-  HealthResponse,
   CreateTransferResponse,
-  GetTransferResponse,
   ErrorResponse,
+  Transfer,
 } from '@cn-banking/shared-types';
 
 const router = Router();
 const saga = new TransferSaga();
+const TransferIdParamSchema = z.object({ id: z.string().uuid() });
 
-// Health check endpoint
-router.get('/health', (req: Request, res: Response) => {
-  const response: HealthResponse = {
-    success: true,
-    data: {
-      status: 'ok',
-    },
-  };
-  res.status(200).json(response);
-});
+const sendError = (res: Response, status: number, code: string, message: string): Response =>
+  res.status(status).json({
+    success: false,
+    error: { code, message },
+  } as ErrorResponse);
+
+const parseTransferId = (req: Request, res: Response): string | null => {
+  const validation = TransferIdParamSchema.safeParse(req.params);
+  if (!validation.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid transfer id');
+    return null;
+  }
+
+  return validation.data.id;
+};
 
 // POST /transfers - Create transfer
 router.post('/transfers', async (req: Request, res: Response) => {
+  const validation = CreateTransferSchema.safeParse(req.body);
+  if (!validation.success) {
+    return sendError(res, 400, 'VALIDATION_ERROR', validation.error.message);
+  }
+
   try {
-    const validation = CreateTransferSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: validation.error.message,
-        },
-      };
-      return res.status(400).json(response);
-    }
-
     const { from_account_id, to_account_id, amount } = validation.data;
 
     const transfer = await saga.execute(from_account_id, to_account_id, amount);
@@ -47,63 +46,49 @@ router.post('/transfers', async (req: Request, res: Response) => {
       success: true,
       data: transfer,
     };
-    res.status(201).json(response);
-  } catch (error: any) {
+    return res.status(201).json(response);
+  } catch (error: unknown) {
     console.error('Error creating transfer:', error);
 
-    // Check if it's an insufficient funds error (422)
-    if (error.response?.status === 422) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'INSUFFICIENT_FUNDS',
-          message: 'Insufficient funds for transfer',
-        },
-      };
-      return res.status(422).json(response);
+    if (isAxiosError(error)) {
+      if (error.response?.status === 422) {
+        return sendError(res, 422, 'INSUFFICIENT_FUNDS', 'Insufficient funds for transfer');
+      }
+
+      if (error.response?.status === 423) {
+        return sendError(res, 423, 'ACCOUNT_FROZEN', 'Transfer blocked because an account is frozen');
+      }
+
+      if (error.response?.status === 404) {
+        return sendError(res, 404, 'NOT_FOUND', 'One or more accounts were not found');
+      }
     }
 
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'TRANSFER_FAILED',
-        message: error.message || 'Failed to create transfer',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'TRANSFER_FAILED', 'Internal server error');
   }
 });
 
 // GET /transfers/:id - Get transfer by ID
 router.get('/transfers/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+  const id = parseTransferId(req, res);
+  if (!id) {
+    return;
+  }
 
+  try {
     const transfer = await saga.getTransferById(id);
 
     if (!transfer) {
-      const response: GetTransferResponse = {
-        success: true,
-        data: null,
-      };
-      return res.status(404).json(response);
+      return sendError(res, 404, 'NOT_FOUND', 'Transfer not found');
     }
 
-    const response: GetTransferResponse = {
+    return res.status(200).json({
       success: true,
       data: transfer,
-    };
-    res.status(200).json(response);
-  } catch (error: any) {
+    } satisfies { success: true; data: Transfer });
+  } catch (error: unknown) {
     console.error('Error getting transfer:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to get transfer',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 

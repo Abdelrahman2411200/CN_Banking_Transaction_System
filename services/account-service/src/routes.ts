@@ -1,379 +1,353 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 import { pool } from './db';
+import { enqueueOutboxEvent } from './outbox';
 import { AccountKycStatus, AccountStatus } from '@cn-banking/shared-types';
 import type {
   Account,
-  HealthResponse,
+  AccountCreatedEvent,
   CreateAccountResponse,
-  GetAccountResponse,
+  ErrorResponse,
   GetAccountBalanceResponse,
   UpdateAccountResponse,
-  ErrorResponse,
 } from '@cn-banking/shared-types';
 import {
+  buildBaseEvent,
   CreateAccountSchema,
-  UpdateKycStatusSchema,
-  DebitAccountSchema,
   CreditAccountSchema,
+  DebitAccountSchema,
+  KafkaTopics,
+  UpdateKycStatusSchema,
 } from '@cn-banking/shared-types';
 
 const router = Router();
+const AccountIdParamSchema = z.object({ id: z.string().uuid() });
 
-// Health check endpoint
-router.get('/health', (req: Request, res: Response) => {
-  const response: HealthResponse = {
-    success: true,
-    data: {
-      status: 'ok',
-    },
-  };
-  res.status(200).json(response);
-});
+const sendError = (res: Response, status: number, code: string, message: string): Response =>
+  res.status(status).json({
+    success: false,
+    error: { code, message },
+  } as ErrorResponse);
+
+const parseAccountId = (req: Request, res: Response): string | null => {
+  const validation = AccountIdParamSchema.safeParse(req.params);
+  if (!validation.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid account id');
+    return null;
+  }
+
+  return validation.data.id;
+};
+
+const isPgError = (error: unknown, code?: string): error is { code?: string } => {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+
+  if (typeof code === 'undefined') {
+    return true;
+  }
+
+  return (error as { code?: string }).code === code;
+};
+
+const getExistingAccountStatus = async (id: string): Promise<{ id: string; status: AccountStatus } | null> => {
+  const result = await pool.query<{ id: string; status: AccountStatus }>(
+    'SELECT id, status FROM accounts WHERE id = $1',
+    [id]
+  );
+
+  return result.rows[0] ?? null;
+};
 
 // POST /accounts - Create new account
 router.post('/accounts', async (req: Request, res: Response) => {
-  try {
-    const validation = CreateAccountSchema.safeParse(req.body);
-    if (!validation.success) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: validation.error.message,
-        },
-      };
-      return res.status(400).json(response);
-    }
+  const validation = CreateAccountSchema.safeParse(req.body);
+  if (!validation.success) {
+    return sendError(res, 400, 'VALIDATION_ERROR', validation.error.message);
+  }
 
+  const client = await pool.connect();
+
+  try {
     const { name, email, initial_balance } = validation.data;
-    const id = uuidv4();
-    const balance = initial_balance || '0.00';
-    const now = new Date().toISOString();
+    await client.query('BEGIN');
 
     const query = `
-      INSERT INTO accounts (id, name, email, balance, kyc_status, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO accounts (name, email, balance, kyc_status, status)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
-    const result = await pool.query(query, [
-      id,
+    const result = await client.query<Account>(query, [
       name,
       email,
-      balance,
+      initial_balance ?? '0.00',
       AccountKycStatus.PENDING,
       AccountStatus.ACTIVE,
-      now,
-      now,
     ]);
 
-    const account: Account = result.rows[0];
+    const account = result.rows[0];
     const response: CreateAccountResponse = {
       success: true,
       data: account,
     };
-    res.status(201).json(response);
-  } catch (error: any) {
-    if (error.code === '23505') {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'CONFLICT',
-          message: 'Account with this email already exists',
-        },
-      };
-      return res.status(409).json(response);
-    }
-    console.error('Error creating account:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to create account',
-      },
+
+    const event: AccountCreatedEvent = {
+      ...buildBaseEvent(KafkaTopics.accountCreated),
+      accountId: account.id,
+      ownerName: account.name,
+      email: account.email,
+      initialDeposit: account.balance,
     };
-    res.status(500).json(response);
+
+    await enqueueOutboxEvent(client, KafkaTopics.accountCreated, account.id, event);
+    await client.query('COMMIT');
+    return res.status(201).json(response);
+  } catch (error: unknown) {
+    await client.query('ROLLBACK');
+
+    if (isPgError(error, '23505')) {
+      return sendError(res, 409, 'CONFLICT', 'Account with this email already exists');
+    }
+
+    console.error('Error creating account:', error);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
+  } finally {
+    client.release();
   }
 });
 
 // GET /accounts/:id - Get account by ID
 router.get('/accounts/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
 
+  try {
     const query = `
       SELECT id, name, email, balance, kyc_status, status, created_at, updated_at
       FROM accounts
       WHERE id = $1
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await pool.query<Account>(query, [id]);
+    const account = result.rows[0];
 
-    if (result.rows.length === 0) {
-      const response: GetAccountResponse = {
-        success: true,
-        data: null,
-      };
-      return res.status(404).json(response);
+    if (!account) {
+      return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
-    const account: Account = result.rows[0];
-    const response: GetAccountResponse = {
+    return res.status(200).json({
       success: true,
       data: account,
-    };
-    res.status(200).json(response);
-  } catch (error: any) {
+    });
+  } catch (error: unknown) {
     console.error('Error getting account:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to get account',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 
 // GET /accounts/:id/balance - Get account balance
 router.get('/accounts/:id/balance', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
 
+  try {
     const query = `
       SELECT id, balance
       FROM accounts
       WHERE id = $1
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await pool.query<{ id: string; balance: string }>(query, [id]);
+    const row = result.rows[0];
 
-    if (result.rows.length === 0) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Account not found',
-        },
-      };
-      return res.status(404).json(response);
+    if (!row) {
+      return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
-    const row = result.rows[0];
     const response: GetAccountBalanceResponse = {
       success: true,
-      data: {
-        id: row.id,
-        balance: row.balance,
-      },
+      data: row,
     };
-    res.status(200).json(response);
-  } catch (error: any) {
+    return res.status(200).json(response);
+  } catch (error: unknown) {
     console.error('Error getting balance:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to get balance',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 
 // PATCH /accounts/:id/kyc - Update KYC status
 router.patch('/accounts/:id/kyc', async (req: Request, res: Response) => {
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
+
+  const validation = UpdateKycStatusSchema.safeParse(req.body);
+  if (!validation.success) {
+    return sendError(res, 400, 'VALIDATION_ERROR', validation.error.message);
+  }
+
   try {
-    const { id } = req.params;
-    const validation = UpdateKycStatusSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: validation.error.message,
-        },
-      };
-      return res.status(400).json(response);
-    }
-
     const { kyc_status } = validation.data;
-    const now = new Date().toISOString();
 
     const query = `
       UPDATE accounts
-      SET kyc_status = $1, updated_at = $2
-      WHERE id = $3
+      SET kyc_status = $1
+      WHERE id = $2
       RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
-    const result = await pool.query(query, [kyc_status, now, id]);
+    const result = await pool.query<Account>(query, [kyc_status, id]);
+    const account = result.rows[0];
 
-    if (result.rows.length === 0) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Account not found',
-        },
-      };
-      return res.status(404).json(response);
+    if (!account) {
+      return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
-    const account: Account = result.rows[0];
     const response: UpdateAccountResponse = {
       success: true,
       data: account,
     };
-    res.status(200).json(response);
-  } catch (error: any) {
+    return res.status(200).json(response);
+  } catch (error: unknown) {
     console.error('Error updating KYC status:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to update KYC status',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 
 // PATCH /accounts/:id/debit - Debit account
 router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
+
+  const validation = DebitAccountSchema.safeParse(req.body);
+  if (!validation.success) {
+    return sendError(res, 400, 'VALIDATION_ERROR', validation.error.message);
+  }
+
   try {
-    const { id } = req.params;
-    const validation = DebitAccountSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: validation.error.message,
-        },
-      };
-      return res.status(400).json(response);
-    }
-
     const { amount } = validation.data;
-    const now = new Date().toISOString();
 
     const query = `
       UPDATE accounts
-      SET balance = balance - $1, updated_at = $2
-      WHERE id = $3 AND balance >= $1
+      SET balance = balance - $1
+      WHERE id = $2 AND status <> $3 AND balance >= $1
       RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
-    const result = await pool.query(query, [amount, now, id]);
+    const result = await pool.query<Account>(query, [amount, id, AccountStatus.SUSPENDED]);
+    const account = result.rows[0];
 
-    if (result.rows.length === 0) {
-      // Check if account exists but has insufficient funds
-      const checkQuery = 'SELECT id FROM accounts WHERE id = $1';
-      const checkResult = await pool.query(checkQuery, [id]);
-
-      if (checkResult.rows.length === 0) {
-        const response: ErrorResponse = {
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Account not found',
-          },
-        };
-        return res.status(404).json(response);
+    if (!account) {
+      const existingAccount = await getExistingAccountStatus(id);
+      if (!existingAccount) {
+        return sendError(res, 404, 'NOT_FOUND', 'Account not found');
       }
 
-      // Account exists but insufficient funds (CHECK violation)
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'INSUFFICIENT_FUNDS',
-          message: 'Insufficient funds for debit',
-        },
-      };
-      return res.status(422).json(response);
+      if (existingAccount.status === AccountStatus.SUSPENDED) {
+        return sendError(res, 423, 'ACCOUNT_FROZEN', 'Account is frozen');
+      }
+
+      return sendError(res, 422, 'INSUFFICIENT_FUNDS', 'Insufficient funds for debit');
     }
 
-    const account: Account = result.rows[0];
     const response: UpdateAccountResponse = {
       success: true,
       data: account,
     };
-    res.status(200).json(response);
-  } catch (error: any) {
+    return res.status(200).json(response);
+  } catch (error: unknown) {
     console.error('Error debiting account:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to debit account',
-      },
-    };
-    res.status(500).json(response);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 
 // PATCH /accounts/:id/credit - Credit account
 router.patch('/accounts/:id/credit', async (req: Request, res: Response) => {
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
+
+  const validation = CreditAccountSchema.safeParse(req.body);
+  if (!validation.success) {
+    return sendError(res, 400, 'VALIDATION_ERROR', validation.error.message);
+  }
+
   try {
-    const { id } = req.params;
-    const validation = CreditAccountSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: validation.error.message,
-        },
-      };
-      return res.status(400).json(response);
-    }
-
     const { amount } = validation.data;
-    const now = new Date().toISOString();
 
     const query = `
       UPDATE accounts
-      SET balance = balance + $1, updated_at = $2
-      WHERE id = $3
+      SET balance = balance + $1
+      WHERE id = $2 AND status <> $3
       RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
-    const result = await pool.query(query, [amount, now, id]);
+    const result = await pool.query<Account>(query, [amount, id, AccountStatus.SUSPENDED]);
+    const account = result.rows[0];
 
-    if (result.rows.length === 0) {
-      const response: ErrorResponse = {
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Account not found',
-        },
-      };
-      return res.status(404).json(response);
+    if (!account) {
+      const existingAccount = await getExistingAccountStatus(id);
+      if (existingAccount?.status === AccountStatus.SUSPENDED) {
+        return sendError(res, 423, 'ACCOUNT_FROZEN', 'Account is frozen');
+      }
+
+      return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
-    const account: Account = result.rows[0];
     const response: UpdateAccountResponse = {
       success: true,
       data: account,
     };
-    res.status(200).json(response);
-  } catch (error: any) {
+    return res.status(200).json(response);
+  } catch (error: unknown) {
     console.error('Error crediting account:', error);
-    const response: ErrorResponse = {
-      success: false,
-      error: {
-        code: 'DATABASE_ERROR',
-        message: error.message || 'Failed to credit account',
-      },
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
+  }
+});
+
+// POST /accounts/:id/freeze - Freeze account
+router.post('/accounts/:id/freeze', async (req: Request, res: Response) => {
+  const id = parseAccountId(req, res);
+  if (!id) {
+    return;
+  }
+
+  try {
+    const result = await pool.query<Account>(
+      `
+        UPDATE accounts
+        SET status = $1
+        WHERE id = $2
+        RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+      `,
+      [AccountStatus.SUSPENDED, id]
+    );
+
+    const account = result.rows[0];
+    if (!account) {
+      return sendError(res, 404, 'NOT_FOUND', 'Account not found');
+    }
+
+    const response: UpdateAccountResponse = {
+      success: true,
+      data: account,
     };
-    res.status(500).json(response);
+
+    return res.status(200).json(response);
+  } catch (error: unknown) {
+    console.error('Error freezing account:', error);
+    return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
 
