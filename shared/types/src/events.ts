@@ -1,63 +1,150 @@
-/**
- * Phase 2 Asynchronous Event Contracts
- * Namespace: bank.*
- */
+import { createHash, randomUUID } from 'node:crypto';
+import { z } from 'zod';
 
-export interface BankEvent<T> {
-  specversion: string;
-  type: string;
-  source: string;
-  id: string;
-  time: string;
-  datacontenttype: string;
-  data: T;
+export const EVENT_VERSION = 'v1' as const;
+
+export const KafkaTopics = {
+  accountCreated: 'bank.account.created',
+  transferInitiated: 'bank.transfer.initiated',
+  transferCompleted: 'bank.transfer.completed',
+  transferFailed: 'bank.transfer.failed',
+  fraudAlert: 'bank.fraud.alert',
+} as const;
+
+export type KafkaTopic = (typeof KafkaTopics)[keyof typeof KafkaTopics];
+
+export interface BaseEvent {
+  eventId: string;
+  eventType: string;
+  timestamp: string;
+  version: string;
 }
 
-export interface AccountCreatedData {
+export interface AccountCreatedEvent extends BaseEvent {
   accountId: string;
+  ownerName: string;
   email: string;
-  name: string;
-  initialBalance: number;
-  timestamp: string;
+  initialDeposit: string;
 }
 
-export interface TransferInitiatedData {
+export interface TransferInitiatedEvent extends BaseEvent {
   transferId: string;
   fromAccountId: string;
   toAccountId: string;
-  amount: number;
-  timestamp: string;
+  amount: string;
 }
 
-export interface TransferCompletedData {
+export interface TransferCompletedEvent extends BaseEvent {
   transferId: string;
   fromAccountId: string;
   toAccountId: string;
-  amount: number;
-  timestamp: string;
+  amount: string;
+  completedAt: string;
 }
 
-export interface TransferFailedData {
+export interface TransferFailedEvent extends BaseEvent {
   transferId: string;
-  error: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: string;
   reason: string;
-  timestamp: string;
 }
 
-export interface FraudAlertData {
+export type FraudSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface FraudAlertEvent extends BaseEvent {
   alertId: string;
   transferId: string;
-  accountId: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  fromAccountId: string;
+  amount: string;
   ruleTriggered: string;
-  timestamp: string;
+  severity: FraudSeverity;
 }
 
-// Event Types Map
-export const EVENT_TYPES = {
-  ACCOUNT_CREATED: 'bank.account.created',
-  TRANSFER_INITIATED: 'bank.transfer.initiated',
-  TRANSFER_COMPLETED: 'bank.transfer.completed',
-  TRANSFER_FAILED: 'bank.transfer.failed',
-  FRAUD_ALERT: 'bank.fraud.alert',
-} as const;
+const baseEventSchema = z.object({
+  eventId: z.string().uuid(),
+  eventType: z.string().min(1),
+  timestamp: z.string().datetime(),
+  version: z.literal(EVENT_VERSION),
+});
+
+export const AccountCreatedEventSchema = baseEventSchema.extend({
+  accountId: z.string().uuid(),
+  ownerName: z.string().min(1),
+  email: z.string().email(),
+  initialDeposit: z.string().regex(/^\d+(\.\d{1,2})?$/),
+});
+
+export const TransferInitiatedEventSchema = baseEventSchema.extend({
+  transferId: z.string().uuid(),
+  fromAccountId: z.string().uuid(),
+  toAccountId: z.string().uuid(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+});
+
+export const TransferCompletedEventSchema = baseEventSchema.extend({
+  transferId: z.string().uuid(),
+  fromAccountId: z.string().uuid(),
+  toAccountId: z.string().uuid(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  completedAt: z.string().datetime(),
+});
+
+export const TransferFailedEventSchema = baseEventSchema.extend({
+  transferId: z.string().uuid(),
+  fromAccountId: z.string().uuid(),
+  toAccountId: z.string().uuid(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  reason: z.string().min(1),
+});
+
+export const FraudAlertEventSchema = baseEventSchema.extend({
+  alertId: z.string().uuid(),
+  transferId: z.string().uuid(),
+  fromAccountId: z.string().uuid(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  ruleTriggered: z.string().min(1),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+});
+
+export type SupportedEvent =
+  | AccountCreatedEvent
+  | TransferInitiatedEvent
+  | TransferCompletedEvent
+  | TransferFailedEvent
+  | FraudAlertEvent;
+
+export const buildBaseEvent = (eventType: string): BaseEvent => ({
+  eventId: randomUUID(),
+  eventType,
+  timestamp: new Date().toISOString(),
+  version: EVENT_VERSION,
+});
+
+export const serializeEvent = (event: SupportedEvent): string => JSON.stringify(event);
+
+export const parseEvent = <T>(payload: string, schema: z.ZodSchema<T>): T =>
+  schema.parse(JSON.parse(payload) as unknown);
+
+export const createDeterministicUuid = (input: string): string => {
+  const hash = createHash('sha1').update(input).digest('hex');
+  const bytes = hash.slice(0, 32).split('');
+
+  bytes[12] = '5';
+  bytes[16] = ((parseInt(bytes[16] || '0', 16) & 0x3) | 0x8).toString(16);
+
+  return [
+    bytes.slice(0, 8).join(''),
+    bytes.slice(8, 12).join(''),
+    bytes.slice(12, 16).join(''),
+    bytes.slice(16, 20).join(''),
+    bytes.slice(20, 32).join(''),
+  ].join('-');
+};
+
+export const createLedgerEntryId = (
+  topic: string,
+  partition: number,
+  offset: string,
+  entryType: string
+): string => createDeterministicUuid(`${topic}:${partition}:${offset}:${entryType}`);

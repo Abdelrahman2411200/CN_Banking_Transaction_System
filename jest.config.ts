@@ -14,7 +14,7 @@ const config: Config = {
   },
   testMatch: [
     '**/__tests__/**/*.test.ts',
-    '<rootDir>/tests/integration/transfer.test.ts',
+    '<rootDir>/tests/integration/**/*.test.ts',
   ],
   collectCoverageFrom: [
     'services/**/src/**/*.ts',

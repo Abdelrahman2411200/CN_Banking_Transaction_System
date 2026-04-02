@@ -1,4 +1,74 @@
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/commands/ruok | grep '\"error\" : null' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_TOPIC_ACCOUNT_CREATED:-bank.account.created} --partitions 3 --replication-factor 1 --config retention.ms=604800000
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_TOPIC_TRANSFER_INITIATED:-bank.transfer.initiated} --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_TOPIC_TRANSFER_COMPLETED:-bank.transfer.completed} --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_TOPIC_TRANSFER_FAILED:-bank.transfer.failed} --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_TOPIC_FRAUD_ALERT:-bank.fraud.alert} --partitions 3 --replication-factor 1 --config retention.ms=2592000000
+        kafka-topics --bootstrap-server kafka:29092 --list
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   postgres-accounts:
     image: postgres:16-alpine
     container_name: postgres-accounts
@@ -32,59 +102,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - ./infra/mongodb/init-ledger.js:/docker-entrypoint-initdb.d/init-ledger.js:ro
-    healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand({ping:  1})'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  kafka-init:
-    build:
-      context: ./infra/kafka/kafka-init
-    container_name: kafka-init
-    depends_on:
-      kafka:
-        condition: service_healthy
-    environment:
-      KAFKA_BOOTSTRAP_SERVER: kafka:29092
 
   db-init:
     build:
@@ -120,11 +137,18 @@ services:
       DB_NAME: ${ACCOUNTS_DB_NAME:-accounts_db}
       DB_USER: ${ACCOUNTS_DB_USER:-accounts_user}
       DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD:-accounts_pass}
-      KAFKA_BROKERS: kafka:29092
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
+      KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
+      KAFKA_TOPIC_ACCOUNT_CREATED: ${KAFKA_TOPIC_ACCOUNT_CREATED:-bank.account.created}
     ports:
       - "${ACCOUNT_SERVICE_PORT:-3001}:${ACCOUNT_SERVICE_PORT:-3001}"
     depends_on:
       db-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      kafka-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:${ACCOUNT_SERVICE_PORT:-3001}/health >/dev/null 2>&1 || exit 1"]
@@ -145,11 +169,20 @@ services:
       DB_USER: ${TRANSFERS_DB_USER:-transfers_user}
       DB_PASSWORD: ${TRANSFERS_DB_PASSWORD:-transfers_pass}
       ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service:3001}
-      KAFKA_BROKERS: kafka:29092
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
+      KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
+      KAFKA_TOPIC_TRANSFER_INITIATED: ${KAFKA_TOPIC_TRANSFER_INITIATED:-bank.transfer.initiated}
+      KAFKA_TOPIC_TRANSFER_COMPLETED: ${KAFKA_TOPIC_TRANSFER_COMPLETED:-bank.transfer.completed}
+      KAFKA_TOPIC_TRANSFER_FAILED: ${KAFKA_TOPIC_TRANSFER_FAILED:-bank.transfer.failed}
     ports:
       - "${TRANSFER_SERVICE_PORT:-3002}:${TRANSFER_SERVICE_PORT:-3002}"
     depends_on:
       db-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      kafka-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:${TRANSFER_SERVICE_PORT:-3002}/health >/dev/null 2>&1 || exit 1"]
@@ -160,22 +193,29 @@ services:
   ledger-service:
     build:
       context: .
-      dockerfile: services/ledger-service/Dockerfile
+      dockerfile: ./services/ledger-service/Dockerfile
     container_name: ledger-service
     environment:
-      LEDGER_SERVICE_PORT: 3003
-      MONGODB_URL: mongodb://mongodb:27017
-      MONGODB_DB_NAME: ledger_db
-      KAFKA_BROKERS: kafka:29092
+      LEDGER_SERVICE_PORT: ${LEDGER_SERVICE_PORT:-3003}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
+      KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
+      KAFKA_TOPIC_TRANSFER_COMPLETED: ${KAFKA_TOPIC_TRANSFER_COMPLETED:-bank.transfer.completed}
+      KAFKA_TOPIC_TRANSFER_FAILED: ${KAFKA_TOPIC_TRANSFER_FAILED:-bank.transfer.failed}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-banking_events}
+      TRANSFER_SERVICE_URL: ${TRANSFER_SERVICE_URL:-http://transfer-service:3002}
     ports:
-      - "3003:3003"
+      - "${LEDGER_SERVICE_PORT:-3003}:${LEDGER_SERVICE_PORT:-3003}"
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${LEDGER_SERVICE_PORT:-3003}/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -183,18 +223,31 @@ services:
   fraud-service:
     build:
       context: .
-      dockerfile: services/fraud-service/Dockerfile
+      dockerfile: ./services/fraud-service/Dockerfile
     container_name: fraud-service
     environment:
-      FRAUD_SERVICE_PORT: 3004
-      KAFKA_BROKERS: kafka:29092
+      FRAUD_SERVICE_PORT: ${FRAUD_SERVICE_PORT:-3004}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service:3001}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
+      KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
+      KAFKA_TOPIC_TRANSFER_INITIATED: ${KAFKA_TOPIC_TRANSFER_INITIATED:-bank.transfer.initiated}
+      KAFKA_TOPIC_FRAUD_ALERT: ${KAFKA_TOPIC_FRAUD_ALERT:-bank.fraud.alert}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-banking_events}
     ports:
-      - "3004:3004"
+      - "${FRAUD_SERVICE_PORT:-3004}:${FRAUD_SERVICE_PORT:-3004}"
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${FRAUD_SERVICE_PORT:-3004}/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -202,18 +255,28 @@ services:
   notification-service:
     build:
       context: .
-      dockerfile: services/notification-service/Dockerfile
+      dockerfile: ./services/notification-service/Dockerfile
     container_name: notification-service
     environment:
-      NOTIFICATION_SERVICE_PORT: 3005
-      KAFKA_BROKERS: kafka:29092
+      NOTIFICATION_SERVICE_PORT: ${NOTIFICATION_SERVICE_PORT:-3005}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service:3001}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
+      KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
+      KAFKA_TOPIC_TRANSFER_COMPLETED: ${KAFKA_TOPIC_TRANSFER_COMPLETED:-bank.transfer.completed}
+      KAFKA_TOPIC_TRANSFER_FAILED: ${KAFKA_TOPIC_TRANSFER_FAILED:-bank.transfer.failed}
+      KAFKA_TOPIC_FRAUD_ALERT: ${KAFKA_TOPIC_FRAUD_ALERT:-bank.fraud.alert}
     ports:
-      - "3005:3005"
+      - "${NOTIFICATION_SERVICE_PORT:-3005}:${NOTIFICATION_SERVICE_PORT:-3005}"
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      account-service:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${NOTIFICATION_SERVICE_PORT:-3005}/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10

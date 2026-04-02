@@ -4,10 +4,9 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY tsconfig.base.json ./
-COPY services/account-service ./services/account-service
-COPY shared/types ./shared/types
-COPY shared/kafka ./shared/kafka
+COPY services ./services
+COPY shared ./shared
 
-RUN npm install
+RUN npm ci
 
 CMD ["npm", "run", "--workspace", "@cn-banking/account-service", "dev"]

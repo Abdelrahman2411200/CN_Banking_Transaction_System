@@ -1,37 +1,131 @@
-import { KafkaConsumer } from '@cn-banking/shared-kafka';
-import { EachMessagePayload } from 'kafkajs';
-import { EVENT_TYPES } from '@cn-banking/shared-types';
+import axios from 'axios';
+import { Kafka, type Consumer } from 'kafkajs';
+import {
+  FraudAlertEventSchema,
+  KafkaTopics,
+  TransferCompletedEventSchema,
+  TransferFailedEventSchema,
+  parseEvent,
+} from '@cn-banking/shared-types';
+import type { FraudAlertEvent, TransferCompletedEvent, TransferFailedEvent } from '@cn-banking/shared-types';
+import { sendEmail, sendSms } from './adapters';
 
-export class NotificationConsumer extends KafkaConsumer {
-  constructor(brokers: string[]) {
-    super('notification-service', 'notification-group', brokers);
+const kafka = new Kafka({
+  clientId: `${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-notification-service`,
+  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
+    .split(',')
+    .map((broker) => broker.trim())
+    .filter(Boolean),
+});
+
+const consumer: Consumer = kafka.consumer({
+  groupId: `${process.env.KAFKA_GROUP_ID_PREFIX || 'cn-banking'}-notification-service`,
+});
+
+const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
+
+type NotificationPlanItem = {
+  channel: 'email' | 'sms';
+  recipient: string;
+  notificationType: string;
+};
+
+interface AccountResponse {
+  data: {
+    email: string;
+  };
+}
+
+const fetchAccountEmail = async (accountId: string): Promise<string> => {
+  const response = await axios.get<AccountResponse>(
+    `${ACCOUNT_SERVICE_URL}/v1/accounts/${accountId}`
+  );
+  return response.data.data.email;
+};
+
+const isTransferCompletedEvent = (
+  event: TransferCompletedEvent | TransferFailedEvent | FraudAlertEvent
+): event is TransferCompletedEvent => 'completedAt' in event;
+
+const isTransferFailedEvent = (
+  event: TransferCompletedEvent | TransferFailedEvent | FraudAlertEvent
+): event is TransferFailedEvent => 'reason' in event;
+
+export const buildNotificationPlan = async (
+  event: TransferCompletedEvent | TransferFailedEvent | FraudAlertEvent
+): Promise<NotificationPlanItem[]> => {
+  if (isTransferCompletedEvent(event)) {
+    const [senderEmail, receiverEmail] = await Promise.all([
+      fetchAccountEmail(event.fromAccountId),
+      fetchAccountEmail(event.toAccountId),
+    ]);
+
+    return [
+      { channel: 'email', recipient: senderEmail, notificationType: event.eventType },
+      { channel: 'email', recipient: receiverEmail, notificationType: event.eventType },
+    ];
   }
 
-  async handleMessage({ topic, message }: EachMessagePayload): Promise<void> {
-    const value = message.value?.toString();
-    if (!value) return;
+  if (isTransferFailedEvent(event)) {
+    const senderEmail = await fetchAccountEmail(event.fromAccountId);
+    return [{ channel: 'email', recipient: senderEmail, notificationType: event.eventType }];
+  }
 
-    const event = JSON.parse(value);
-    console.log(`[NOTIFICATION] Received event on topic ${topic}`);
+  const accountEmail = await fetchAccountEmail(event.fromAccountId);
+  const plan: NotificationPlanItem[] = [
+    { channel: 'email', recipient: accountEmail, notificationType: event.eventType },
+  ];
 
-    switch (topic) {
-      case EVENT_TYPES.ACCOUNT_CREATED:
-        console.log(`>>> EMAIL sent to ${event.email}: Welcome ${event.name}! Your account ${event.accountId} is open with balance ${event.initialBalance}.`);
-        break;
-      case EVENT_TYPES.TRANSFER_INITIATED:
-        console.log(`>>> SMS sent: Transfer of ${event.amount} from ${event.fromAccountId} to ${event.toAccountId} initiated.`);
-        break;
-      case EVENT_TYPES.TRANSFER_COMPLETED:
-        console.log(`>>> EMAIL sent: Your transfer of ${event.amount} (ID: ${event.transferId}) has completed successfully.`);
-        break;
-      case EVENT_TYPES.TRANSFER_FAILED:
-        console.log(`>>> ALERT EMAIL sent: Your transfer (ID: ${event.transferId}) failed. Reason: ${event.reason}.`);
-        break;
-      case EVENT_TYPES.FRAUD_ALERT:
-        console.log(`!!! SECURITY ALERT sent: Suspicious activity detected on transfer ${event.transferId}. Severity: ${event.severity}.`);
-        break;
-      default:
-        console.log(`Unhandled event type: ${topic}`);
+  if (event.severity === 'high' || event.severity === 'critical') {
+    plan.push({
+      channel: 'sms',
+      recipient: `account:${event.fromAccountId}`,
+      notificationType: event.eventType,
+    });
+  }
+
+  return plan;
+};
+
+export const handleNotificationEvent = async (payload: string, topic: string): Promise<void> => {
+  let event: TransferCompletedEvent | TransferFailedEvent | FraudAlertEvent;
+
+  if (topic === KafkaTopics.transferCompleted) {
+    event = parseEvent(payload, TransferCompletedEventSchema);
+  } else if (topic === KafkaTopics.transferFailed) {
+    event = parseEvent(payload, TransferFailedEventSchema);
+  } else {
+    event = parseEvent(payload, FraudAlertEventSchema);
+  }
+
+  const plan = await buildNotificationPlan(event);
+  for (const attempt of plan) {
+    if (attempt.channel === 'email') {
+      await sendEmail(attempt.notificationType, attempt.recipient);
+    } else {
+      await sendSms(attempt.notificationType, attempt.recipient);
     }
   }
-}
+};
+
+export const startNotificationConsumer = async (): Promise<void> => {
+  await consumer.connect();
+  await consumer.subscribe({ topic: KafkaTopics.transferCompleted, fromBeginning: false });
+  await consumer.subscribe({ topic: KafkaTopics.transferFailed, fromBeginning: false });
+  await consumer.subscribe({ topic: KafkaTopics.fraudAlert, fromBeginning: false });
+
+  await consumer.run({
+    eachMessage: async ({ topic, message }) => {
+      const payload = message.value?.toString();
+      if (!payload) {
+        return;
+      }
+
+      await handleNotificationEvent(payload, topic);
+    },
+  });
+};
+
+export const stopNotificationConsumer = async (): Promise<void> => {
+  await consumer.disconnect();
+};

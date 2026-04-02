@@ -1,30 +1,41 @@
-import axios from 'axios';
-import type { AxiosError } from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+import axios, { isAxiosError } from 'axios';
+import type { Pool } from 'pg';
 import { pool } from './db';
-import {
-  TransferStatus,
-  SagaStep,
-  EVENT_TYPES,
-} from '@cn-banking/shared-types';
+import { enqueueOutboxEvent } from './outbox';
+import { KafkaTopics, SagaStep, TransferStatus } from '@cn-banking/shared-types';
 import type {
-  Transfer,
+  SupportedEvent,
   SagaState,
+  Transfer,
+  TransferCompletedEvent,
+  TransferFailedEvent,
+  TransferInitiatedEvent,
 } from '@cn-banking/shared-types';
-import { producer } from './kafka';
+import { buildBaseEvent } from '@cn-banking/shared-types';
 
 const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
 
+type HttpClient = Pick<typeof axios, 'patch'>;
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Unknown error';
+};
+
 export class TransferSaga {
+  constructor(
+    private readonly db: Pool = pool,
+    private readonly httpClient: HttpClient = axios
+  ) {}
+
   async execute(
     fromAccountId: string,
     toAccountId: string,
     amount: string
   ): Promise<Transfer> {
-    const transferId = uuidv4();
-    const now = new Date().toISOString();
-
-    // Initialize transfer with INITIATED status
     const sagaState: SagaState = {
       current_step: SagaStep.CREATE,
       debit_completed: false,
@@ -33,180 +44,266 @@ export class TransferSaga {
       error: null,
     };
 
-    const createQuery = `
-      INSERT INTO transfers (id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
-    `;
-
-    await pool.query(createQuery, [
-      transferId,
-      fromAccountId,
-      toAccountId,
-      amount,
-      TransferStatus.INITIATED,
-      JSON.stringify(sagaState),
-      null,
-      now,
-      now,
-    ]);
-
-    // Phase 2: Emit bank.transfer.initiated
-    try {
-      await producer.emit(EVENT_TYPES.TRANSFER_INITIATED, transferId, {
-        transferId,
-        fromAccountId,
-        toAccountId,
-        amount: parseFloat(amount),
-        timestamp: now,
-      });
-    } catch (kafkaError) {
-      console.error('Failed to emit transfer.initiated event:', kafkaError);
-    }
+    const transferId = await this.createTransferRecord(fromAccountId, toAccountId, amount, sagaState);
 
     try {
-      // Step 1: Debit from source account
       sagaState.current_step = SagaStep.DEBIT;
       await this.updateSagaState(transferId, sagaState);
 
-      try {
-        await axios.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/debit`, {
-          amount,
-        });
-        sagaState.debit_completed = true;
-      } catch (error: any) {
-        const statusCode = (error as AxiosError)?.response?.status;
-        if (statusCode === 422) {
-          sagaState.error = 'Insufficient funds';
-        } else {
-          sagaState.error = `Debit failed: ${error.message}`;
-        }
-        throw error;
-      }
+      await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/debit`, {
+        amount,
+      });
+      sagaState.debit_completed = true;
 
-      // Step 2: Credit to destination account
       sagaState.current_step = SagaStep.CREDIT;
       await this.updateSagaState(transferId, sagaState);
 
-      try {
-        await axios.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${toAccountId}/credit`, {
-          amount,
-        });
-        sagaState.credit_completed = true;
-      } catch (error: any) {
-        sagaState.error = `Credit failed: ${error.message}`;
-        throw error;
+      await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${toAccountId}/credit`, {
+        amount,
+      });
+      sagaState.credit_completed = true;
+      sagaState.current_step = SagaStep.COMPLETED;
+
+      const completedAt = new Date().toISOString();
+      const completedEvent: TransferCompletedEvent = {
+        ...buildBaseEvent(KafkaTopics.transferCompleted),
+        transferId,
+        fromAccountId,
+        toAccountId,
+        amount,
+        completedAt,
+      };
+
+      const completedTransfer = await this.updateTransferState(
+        transferId,
+        TransferStatus.COMPLETED,
+        sagaState,
+        null,
+        completedEvent
+      );
+
+      if (!completedTransfer) {
+        throw new Error('Failed to persist completed transfer state');
       }
 
-      // Success: Mark transfer as completed
-      sagaState.current_step = SagaStep.COMPLETED;
-      const updateQuery = `
-        UPDATE transfers
-        SET status = $1, saga_state = $2, updated_at = $3
-        WHERE id = $4
-        RETURNING id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
-      `;
+      return completedTransfer;
+    } catch (error: unknown) {
+      const originalErrorMessage = isAxiosError(error) && error.response?.status === 422
+        ? 'Insufficient funds'
+        : getErrorMessage(error);
 
-      const result = await pool.query(updateQuery, [
-        TransferStatus.COMPLETED,
-        JSON.stringify(sagaState),
-        new Date().toISOString(),
-        transferId,
-      ]);
+      sagaState.error = originalErrorMessage;
 
-      const transfer = result.rows[0];
-
-      // Phase 2: Emit bank.transfer.completed
-      try {
-        await producer.emit(EVENT_TYPES.TRANSFER_COMPLETED, transferId, {
+      if (!sagaState.debit_completed) {
+        const failedEvent = this.buildFailedEvent(
           transferId,
           fromAccountId,
           toAccountId,
-          amount: parseFloat(amount),
-          timestamp: new Date().toISOString(),
-        });
-      } catch (kafkaError) {
-        console.error('Failed to emit transfer.completed event:', kafkaError);
-      }
+          amount,
+          originalErrorMessage
+        );
 
-      return transfer;
-    } catch (originalError: any) {
-      // Compensation: Reverse debit if it was completed
-      if (sagaState.debit_completed && !sagaState.compensation_completed) {
-        sagaState.current_step = SagaStep.COMPENSATION;
-        await this.updateSagaState(transferId, sagaState);
-
-        try {
-          await axios.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/credit`, {
-            amount,
-          });
-          sagaState.compensation_completed = true;
-        } catch (compensationError: any) {
-          console.error('Compensation failed:', compensationError);
-          sagaState.error = `Compensation failed: ${compensationError.message}`;
-        }
-      }
-
-      // Mark transfer as failed
-      const updateQuery = `
-        UPDATE transfers
-        SET status = $1, saga_state = $2, error_message = $3, updated_at = $4
-        WHERE id = $5
-        RETURNING id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
-      `;
-
-      await pool.query(updateQuery, [
-        TransferStatus.FAILED,
-        JSON.stringify(sagaState),
-        sagaState.error,
-        new Date().toISOString(),
-        transferId,
-      ]);
-
-      // Phase 2: Emit bank.transfer.failed
-      try {
-        await producer.emit(EVENT_TYPES.TRANSFER_FAILED, transferId, {
+        await this.updateTransferState(
           transferId,
-          error: originalError.message,
-          reason: sagaState.error || 'Unknown error',
-          timestamp: new Date().toISOString(),
-        });
-      } catch (kafkaError) {
-        console.error('Failed to emit transfer.failed event:', kafkaError);
+          TransferStatus.FAILED,
+          sagaState,
+          originalErrorMessage,
+          failedEvent
+        );
+        throw error;
       }
 
-      // Re-throw so the route can determine the correct HTTP status code
-      throw originalError;
+      sagaState.current_step = SagaStep.COMPENSATION;
+      await this.updateTransferState(
+        transferId,
+        TransferStatus.COMPENSATING,
+        sagaState,
+        originalErrorMessage
+      );
+
+      try {
+        await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/credit`, {
+          amount,
+        });
+        sagaState.compensation_completed = true;
+
+        const failedEvent = this.buildFailedEvent(
+          transferId,
+          fromAccountId,
+          toAccountId,
+          amount,
+          originalErrorMessage
+        );
+
+        await this.updateTransferState(
+          transferId,
+          TransferStatus.FAILED,
+          sagaState,
+          originalErrorMessage,
+          failedEvent
+        );
+      } catch (compensationError: unknown) {
+        const combinedErrorMessage =
+          `Credit failed: ${originalErrorMessage}; compensation failed: ${getErrorMessage(compensationError)}`;
+
+        console.error('Compensation failed:', compensationError);
+        sagaState.error = combinedErrorMessage;
+
+        const failedEvent = this.buildFailedEvent(
+          transferId,
+          fromAccountId,
+          toAccountId,
+          amount,
+          combinedErrorMessage
+        );
+
+        await this.updateTransferState(
+          transferId,
+          TransferStatus.COMPENSATION_FAILED,
+          sagaState,
+          combinedErrorMessage,
+          failedEvent
+        );
+      }
+
+      throw error;
     }
   }
 
   async getTransferById(transferId: string): Promise<Transfer | null> {
-    const query = `
-      SELECT id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
-      FROM transfers
-      WHERE id = $1
-    `;
+    const result = await this.db.query<Transfer>(
+      `
+        SELECT id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
+        FROM transfers
+        WHERE id = $1
+      `,
+      [transferId]
+    );
 
-    const result = await pool.query(query, [transferId]);
+    return result.rows[0] ?? null;
+  }
 
-    if (result.rows.length === 0) {
-      return null;
+  private async createTransferRecord(
+    fromAccountId: string,
+    toAccountId: string,
+    amount: string,
+    sagaState: SagaState
+  ): Promise<string> {
+    const client = await this.db.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const createResult = await client.query<{ id: string }>(
+        `
+          INSERT INTO transfers (from_account_id, to_account_id, amount, status, saga_state, error_message)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
+        `,
+        [
+          fromAccountId,
+          toAccountId,
+          amount,
+          TransferStatus.INITIATED,
+          JSON.stringify(sagaState),
+          null,
+        ]
+      );
+
+      const createdTransfer = createResult.rows[0];
+      if (!createdTransfer) {
+        throw new Error('Failed to create transfer record');
+      }
+
+      const initiatedEvent: TransferInitiatedEvent = {
+        ...buildBaseEvent(KafkaTopics.transferInitiated),
+        transferId: createdTransfer.id,
+        fromAccountId,
+        toAccountId,
+        amount,
+      };
+
+      await enqueueOutboxEvent(
+        client,
+        KafkaTopics.transferInitiated,
+        createdTransfer.id,
+        initiatedEvent
+      );
+
+      await client.query('COMMIT');
+      return createdTransfer.id;
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
+  }
 
-    return result.rows[0];
+  private buildFailedEvent(
+    transferId: string,
+    fromAccountId: string,
+    toAccountId: string,
+    amount: string,
+    reason: string
+  ): TransferFailedEvent {
+    return {
+      ...buildBaseEvent(KafkaTopics.transferFailed),
+      transferId,
+      fromAccountId,
+      toAccountId,
+      amount,
+      reason,
+    };
   }
 
   private async updateSagaState(transferId: string, sagaState: SagaState): Promise<void> {
-    const query = `
-      UPDATE transfers
-      SET saga_state = $1, updated_at = $2
-      WHERE id = $3
-    `;
+    await this.db.query(
+      `
+        UPDATE transfers
+        SET saga_state = $1
+        WHERE id = $2
+      `,
+      [JSON.stringify(sagaState), transferId]
+    );
+  }
 
-    await pool.query(query, [
-      JSON.stringify(sagaState),
-      new Date().toISOString(),
-      transferId,
-    ]);
+  private async updateTransferState(
+    transferId: string,
+    status: TransferStatus,
+    sagaState: SagaState,
+    errorMessage: string | null,
+    event?: SupportedEvent
+  ): Promise<Transfer | null> {
+    const client = await this.db.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query<Transfer>(
+        `
+          UPDATE transfers
+          SET status = $1, saga_state = $2, error_message = $3
+          WHERE id = $4
+          RETURNING id, from_account_id, to_account_id, amount, status, saga_state, error_message, created_at, updated_at
+        `,
+        [status, JSON.stringify(sagaState), errorMessage, transferId]
+      );
+
+      const transfer = result.rows[0] ?? null;
+
+      if (transfer && event) {
+        const topic = event.eventType;
+        await enqueueOutboxEvent(client, topic, transferId, event);
+      }
+
+      await client.query('COMMIT');
+      return transfer;
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }

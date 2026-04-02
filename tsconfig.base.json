@@ -9,9 +9,9 @@
       "@cn-banking/shared-kafka": ["shared/kafka/src/index.ts"]
     },
     "lib": ["ES2022"],
-    "strict": false,
+    "strict": true,
     "noImplicitAny": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
     "esModuleInterop": true,
