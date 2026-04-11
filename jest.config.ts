@@ -3,7 +3,7 @@ import type { Config } from 'jest';
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/services', '<rootDir>/tests'],
+  roots: ['<rootDir>/shared', '<rootDir>/services', '<rootDir>/tests'],
   moduleNameMapper: {
     '^@cn-banking/shared-types$': '<rootDir>/shared/types/src/index',
   },
@@ -17,6 +17,9 @@ const config: Config = {
     '<rootDir>/tests/integration/**/*.test.ts',
   ],
   collectCoverageFrom: [
+    'shared/**/src/**/*.ts',
+    '!shared/**/src/**/*.test.ts',
+    '!shared/**/src/__tests__/**',
     'services/**/src/**/*.ts',
     '!services/**/src/**/*.test.ts',
     '!services/**/src/__tests__/**',
