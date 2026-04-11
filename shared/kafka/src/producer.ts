@@ -1,4 +1,4 @@
-import { Kafka, Producer, ProducerRecord } from 'kafkajs';
+import { Kafka, type Producer, type ProducerRecord } from 'kafkajs';
 
 export class KafkaProducer {
   private producer: Producer;
@@ -24,7 +24,7 @@ export class KafkaProducer {
     return this.producer.send(record);
   }
 
-  async emit(topic: string, key: string, data: any) {
+  async emit(topic: string, key: string, data: unknown) {
     return this.send({
       topic,
       messages: [

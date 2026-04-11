@@ -1,4 +1,4 @@
-import { Kafka, Consumer, EachBatchPayload, EachMessagePayload } from 'kafkajs';
+import { Kafka, type Consumer, type EachMessagePayload } from 'kafkajs';
 
 export abstract class KafkaConsumer {
   protected consumer: Consumer;

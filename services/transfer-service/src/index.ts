@@ -7,7 +7,7 @@ import { startOutboxPublisher, stopOutboxPublisher } from './outbox';
 import { router } from './routes';
 import { initKafka } from './kafka';
 
-initKafka();
+void initKafka();
 
 const app = express();
 const PORT = Number(process.env.TRANSFER_SERVICE_PORT || 3002);

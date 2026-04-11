@@ -6,6 +6,7 @@ const config: Config = {
   roots: ['<rootDir>/shared', '<rootDir>/services', '<rootDir>/tests'],
   moduleNameMapper: {
     '^@cn-banking/shared-types$': '<rootDir>/shared/types/src/index',
+    '^@cn-banking/shared-kafka$': '<rootDir>/shared/kafka/src/index',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
