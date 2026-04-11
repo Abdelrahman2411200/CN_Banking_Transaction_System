@@ -1,0 +1,28 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest --runInBand",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^4.19",
+    "http-proxy-middleware": "^3",
+    "ioredis": "^5",
+    "jsonwebtoken": "^9",
+    "bcryptjs": "^2",
+    "express-rate-limit": "^7",
+    "rate-limit-redis": "^4",
+    "uuid": "^9"
+  },
+  "devDependencies": {
+    "jest": "^29",
+    "supertest": "^6",
+    "ioredis-mock": "^8"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}
