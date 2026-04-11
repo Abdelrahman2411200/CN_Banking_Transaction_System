@@ -4,7 +4,12 @@ const { PORT, SERVICES } = require('./config');
 
 const securityHeaders  = require('./middleware/securityHeaders');
 const authMiddleware   = require('./middleware/auth');
-const { globalLimiter, accountLimiter, transferLimiter } = require('./middleware/rateLimiter');
+const {
+  globalLimiter,
+  accountLimiter,
+  transferLimiter,
+  sensitiveLimiter,
+} = require('./middleware/rateLimiter');
 const idempotency      = require('./middleware/idempotency');
 const authRoutes       = require('./routes/auth');
 const {
@@ -54,6 +59,7 @@ const adminOnly = (req, res, next) =>
     : res.status(403).json({ error: 'forbidden' });
 
 // 6. Proxied routes — auth required on all
+app.post('/v1/accounts/:id/freeze', authMiddleware, sensitiveLimiter, accountProxy);
 app.use('/v1/accounts', authMiddleware, accountLimiter, accountProxy);
 
 // Transfers: idempotency + per-user rate limit on POST only
@@ -65,8 +71,8 @@ app.use('/v1/ledger/stats', authMiddleware, adminOnly, ledgerProxy);
 app.use('/v1/ledger',       authMiddleware, ledgerProxy);
 
 // Admin-only routes
-app.use('/v1/fraud',         authMiddleware, adminOnly, fraudProxy);
-app.use('/v1/notifications', authMiddleware, adminOnly, notificationProxy);
+app.use('/v1/fraud',         authMiddleware, adminOnly, sensitiveLimiter, fraudProxy);
+app.use('/v1/notifications', authMiddleware, adminOnly, sensitiveLimiter, notificationProxy);
 
 // 7. 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'not_found' }));

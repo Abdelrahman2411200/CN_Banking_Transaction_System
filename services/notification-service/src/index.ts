@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
+import { KafkaTopics } from '@cn-banking/shared-types';
 import { startNotificationConsumer, stopNotificationConsumer } from './consumer';
 
 const app = express();
@@ -16,6 +17,22 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ success: true, data: { status: 'ok' } });
+});
+
+app.get('/v1/notifications', (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      mode: 'event-consumer',
+      persistence: 'none',
+      channels: ['email', 'sms'],
+      subscribedTopics: [
+        KafkaTopics.transferCompleted,
+        KafkaTopics.transferFailed,
+        KafkaTopics.fraudAlert,
+      ],
+    },
+  });
 });
 
 const startServer = (): Server =>
