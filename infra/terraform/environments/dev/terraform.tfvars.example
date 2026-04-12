@@ -1,0 +1,14 @@
+aws_region = "us-east-1"
+
+accounts_db_password  = "replace-with-dev-accounts-password"
+transfers_db_password = "replace-with-dev-transfers-password"
+redis_auth_token      = "replace-with-dev-redis-token"
+kafka_scram_username = "cn_banking_app"
+kafka_scram_password = "replace-with-dev-msk-scram-password"
+
+enable_documentdb   = false
+documentdb_password = "replace-if-enable-documentdb"
+
+tags = {
+  Owner = "platform"
+}

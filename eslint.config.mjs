@@ -7,6 +7,18 @@ export default [
     ignores: ["**/dist/**", "**/node_modules/**", "**/__tests__/**"]
   },
   js.configs.recommended,
+  {
+    files: ["**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        fetch: "readonly",
+        AbortSignal: "readonly"
+      }
+    }
+  },
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
     files: ["**/*.ts"]

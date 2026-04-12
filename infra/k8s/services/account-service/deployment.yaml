@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: banking
+  labels:
+    app: account-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: account-service
+          image: "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/account-service:${IMAGE_TAG}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          env:
+            - name: ACCOUNT_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: ACCOUNT_SERVICE_PORT
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_ACCOUNTS_PASSWORD
+            - name: KAFKA_BROKERS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_BROKERS
+            - name: KAFKA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: KAFKA_CLIENT_ID
+            - name: KAFKA_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: KAFKA_SSL
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: KAFKA_SASL_MECHANISM
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_USERNAME
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_PASSWORD
+            - name: KAFKA_GROUP_ID_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: KAFKA_GROUP_ID_PREFIX
+            - name: KAFKA_TOPIC_ACCOUNT_CREATED
+              valueFrom:
+                configMapKeyRef:
+                  name: account-service-config
+                  key: KAFKA_TOPIC_ACCOUNT_CREATED
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            failureThreshold: 12
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: tmp
+          emptyDir: {}

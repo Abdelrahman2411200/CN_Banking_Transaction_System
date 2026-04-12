@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service"
+
+jobs:
+  lint:
+    name: Lint and Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+  test:
+    name: Unit and Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+      - if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  audit:
+    name: npm Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+  build-and-scan:
+    name: Build and Trivy Scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - account-service
+          - transfer-service
+          - ledger-service
+          - fraud-service
+          - notification-service
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --build-arg VERSION=${{ github.sha }} -f services/${{ matrix.service }}/Dockerfile -t cn-banking/${{ matrix.service }}:${{ github.sha }} .
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: cn-banking/${{ matrix.service }}:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore

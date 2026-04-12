@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export * from './events';
+export * from './kafka-config';
 export * from './mongo';
 export * from './outbox';
 

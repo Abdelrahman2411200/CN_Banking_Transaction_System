@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-service-config
+  namespace: banking
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  NOTIFICATION_SERVICE_PORT: "3005"
+  ACCOUNT_SERVICE_URL: "http://account-service:3001"
+  KAFKA_CLIENT_ID: "cn-banking-platform"
+  KAFKA_SSL: "true"
+  KAFKA_SASL_MECHANISM: "scram-sha-512"
+  KAFKA_GROUP_ID_PREFIX: "cn-banking"
+  KAFKA_TOPIC_TRANSFER_COMPLETED: "bank.transfer.completed"
+  KAFKA_TOPIC_TRANSFER_FAILED: "bank.transfer.failed"
+  KAFKA_TOPIC_FRAUD_ALERT: "bank.fraud.alert"

@@ -1,7 +1,45 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 WORKDIR /app
+
 COPY package*.json ./
+COPY tsconfig.base.json ./
+COPY shared/types/package.json ./shared/types/package.json
+COPY shared/kafka/package.json ./shared/kafka/package.json
+COPY services/api-gateway/package.json ./services/api-gateway/package.json
+COPY services/account-service/package.json ./services/account-service/package.json
+COPY services/transfer-service/package.json ./services/transfer-service/package.json
+COPY services/ledger-service/package.json ./services/ledger-service/package.json
+COPY services/fraud-service/package.json ./services/fraud-service/package.json
+COPY services/notification-service/package.json ./services/notification-service/package.json
+RUN npm ci
+
 COPY services/api-gateway ./services/api-gateway
-RUN npm ci --omit=dev
+RUN npm run build --workspace api-gateway
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ARG VERSION=dev
+ENV NODE_ENV=production \
+    APP_VERSION=$VERSION
+
+COPY package*.json ./
+COPY shared/types/package.json ./shared/types/package.json
+COPY shared/kafka/package.json ./shared/kafka/package.json
+COPY services/api-gateway/package.json ./services/api-gateway/package.json
+COPY services/account-service/package.json ./services/account-service/package.json
+COPY services/transfer-service/package.json ./services/transfer-service/package.json
+COPY services/ledger-service/package.json ./services/ledger-service/package.json
+COPY services/fraud-service/package.json ./services/fraud-service/package.json
+COPY services/notification-service/package.json ./services/notification-service/package.json
+RUN npm ci --omit=dev --workspace api-gateway --include-workspace-root=false && npm cache clean --force
+
+COPY --from=builder /app/services/api-gateway/dist ./services/api-gateway/dist
+
+RUN addgroup -S -g 10001 app && adduser -S -G app -u 10001 appuser
+USER 10001
+
 EXPOSE 8080
-CMD ["npm", "start", "--workspace", "api-gateway"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget --spider -q http://localhost:8080/health || exit 1
+
+CMD ["node", "services/api-gateway/dist/index.js"]

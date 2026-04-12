@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transfer-service-config
+  namespace: banking
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  TRANSFER_SERVICE_PORT: "3002"
+  DB_HOST: "replace-with-transfers-rds-endpoint"
+  DB_PORT: "5432"
+  DB_NAME: "transfers_db"
+  DB_USER: "transfers_user"
+  ACCOUNT_SERVICE_URL: "http://account-service:3001"
+  KAFKA_CLIENT_ID: "cn-banking-platform"
+  KAFKA_SSL: "true"
+  KAFKA_SASL_MECHANISM: "scram-sha-512"
+  KAFKA_GROUP_ID_PREFIX: "cn-banking"
+  KAFKA_TOPIC_TRANSFER_INITIATED: "bank.transfer.initiated"
+  KAFKA_TOPIC_TRANSFER_COMPLETED: "bank.transfer.completed"
+  KAFKA_TOPIC_TRANSFER_FAILED: "bank.transfer.failed"

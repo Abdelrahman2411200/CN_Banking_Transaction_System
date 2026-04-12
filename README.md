@@ -156,6 +156,10 @@ Then create two accounts, post a transfer, and verify:
 | NOTIFICATION_SERVICE_URL | http://notification-service:3005 |
 | KAFKA_BROKERS | kafka:29092 |
 | KAFKA_CLIENT_ID | cn-banking-platform |
+| KAFKA_SSL | false |
+| KAFKA_SASL_MECHANISM | empty locally, scram-sha-512 on MSK |
+| KAFKA_SASL_USERNAME | empty locally |
+| KAFKA_SASL_PASSWORD | empty locally |
 | KAFKA_GROUP_ID_PREFIX | cn-banking |
 | KAFKA_TOPIC_ACCOUNT_CREATED | bank.account.created |
 | KAFKA_TOPIC_TRANSFER_INITIATED | bank.transfer.initiated |
@@ -163,7 +167,12 @@ Then create two accounts, post a transfer, and verify:
 | KAFKA_TOPIC_TRANSFER_FAILED | bank.transfer.failed |
 | KAFKA_TOPIC_FRAUD_ALERT | bank.fraud.alert |
 | MONGODB_URI | mongodb://mongodb:27017 |
+| MONGODB_PASSWORD | replace-with-mongodb-compatible-password |
 | MONGODB_DB_NAME | banking_events |
+| REDIS_URL | redis://redis:6379 |
+| REDIS_PASSWORD | replace-with-redis-password |
+| JWT_ACCESS_SECRET | replace-with-a-long-random-access-token-secret |
+| JWT_REFRESH_SECRET | replace-with-a-long-random-refresh-token-secret |
 | ACCOUNTS_DB_HOST | postgres-accounts |
 | ACCOUNTS_DB_PORT | 5432 |
 | ACCOUNTS_DB_HOST_PORT | 5433 |
@@ -184,9 +193,73 @@ Then create two accounts, post a transfer, and verify:
 - `make down`: stop containers and remove volumes
 - `make logs`: follow combined container logs
 
+## Phase 4 Cloud Deployment
+
+Phase 4 adds production Dockerfiles, AWS Terraform, Kubernetes manifests, and GitHub Actions CI/CD.
+
+### Container Builds
+
+```powershell
+npm run test:containers
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-service-images.ps1
+```
+
+Each service image uses Node 20 Alpine builder/runner stages, runs as non-root UID `10001`, starts with `node` directly, exposes `/health`, and keeps secrets out of the image.
+
+### Terraform Backend
+
+Create the S3 state bucket and DynamoDB lock table before the first Terraform init:
+
+```powershell
+aws s3 mb s3://YOUR_TF_STATE_BUCKET --region YOUR_REGION
+aws dynamodb create-table --table-name YOUR_TF_LOCK_TABLE --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST --region YOUR_REGION
+```
+
+Use `infra/terraform/environments/dev/terraform.tfvars.example` and `infra/terraform/environments/prod/terraform.tfvars.example` as templates only. Do not commit real `*.tfvars`, state, plan files, or cloud credentials.
+
+### Required GitHub Secrets
+
+- `AWS_ROLE_ARN`
+- `ECR_REGISTRY`
+- `TF_STATE_BUCKET`
+- `TF_LOCK_TABLE`
+- `DB_ACCOUNTS_PASSWORD`
+- `DB_TRANSFERS_PASSWORD`
+- `REDIS_PASSWORD`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `ACM_CERTIFICATE_ARN`
+- `MONGODB_PASSWORD`
+- `KAFKA_SCRAM_PASSWORD`
+
+Set `AWS_REGION` and `PUBLIC_DOMAIN` as GitHub Actions repository variables. Configure the `production` GitHub environment with required reviewers before enabling the CD workflow. The EKS API endpoint is private-only by default, so GitHub-hosted runners need VPC access or a self-hosted runner in the VPC for `kubectl` deployment steps.
+
+Install the AWS Load Balancer Controller with IRSA permissions in the EKS cluster before applying `infra/k8s/ingress.yaml`. Install metrics-server for HPA metrics and use a network-policy-capable CNI before relying on `infra/k8s/networkpolicies.yaml`.
+
+### Kubernetes Verification
+
+```powershell
+aws eks update-kubeconfig --name cn-banking-prod-eks --region YOUR_REGION
+kubectl get pods -n banking
+curl.exe https://your-domain/health
+```
+
+Expected result: all six service deployments are ready in namespace `banking`, PDBs are present, network policies are enforced, and the gateway health endpoint returns HTTP 200.
+
+### Rollback
+
+Demonstrate rollback with:
+
+```powershell
+kubectl rollout undo deployment/api-gateway -n banking
+kubectl rollout status deployment/api-gateway -n banking --timeout=5m
+```
+
+The CD workflow applies all rendered manifests, checks every service rollout, and rolls back all six deployments if any rollout fails.
+
 ## Troubleshooting
 
 - Port conflict: free ports `3001-3005`, `9092`, `27017`, `5433`, and `5434`.
 - Kafka topic startup issue: run `make down`, then `make up` to recreate Kafka and rerun `kafka-init`.
-- Integration test connection failures: confirm `docker compose ps` shows the five services plus Kafka and MongoDB healthy.
+- Integration test connection failures: confirm `docker compose ps` shows the six services plus Kafka and MongoDB healthy.
 - Stale data: run `make down` to remove volumes, then restart with `make up`.

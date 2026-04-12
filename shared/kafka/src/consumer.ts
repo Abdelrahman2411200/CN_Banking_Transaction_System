@@ -1,14 +1,12 @@
 import { Kafka, type Consumer, type EachMessagePayload } from 'kafkajs';
+import { createKafkaClientConfig } from './config';
 
 export abstract class KafkaConsumer {
   protected consumer: Consumer;
   protected groupId: string;
 
   constructor(clientId: string, groupId: string, brokers: string[]) {
-    const kafka = new Kafka({
-      clientId,
-      brokers,
-    });
+    const kafka = new Kafka(createKafkaClientConfig(clientId, brokers));
     this.consumer = kafka.consumer({ groupId });
     this.groupId = groupId;
   }

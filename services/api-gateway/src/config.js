@@ -17,10 +17,10 @@ module.exports = {
   REDIS_URL: process.env.REDIS_URL || 'redis://redis:6379',
 
   SERVICES: {
-    account:      'http://account-service:3001',
-    transfer:     'http://transfer-service:3002',
-    ledger:       'http://ledger-service:3003',
-    fraud:        'http://fraud-service:3004',
-    notification: 'http://notification-service:3005',
+    account:      process.env.ACCOUNT_SERVICE_URL || 'http://account-service:3001',
+    transfer:     process.env.TRANSFER_SERVICE_URL || 'http://transfer-service:3002',
+    ledger:       process.env.LEDGER_SERVICE_URL || 'http://ledger-service:3003',
+    fraud:        process.env.FRAUD_SERVICE_URL || 'http://fraud-service:3004',
+    notification: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3005',
   },
 };

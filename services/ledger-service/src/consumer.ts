@@ -7,6 +7,7 @@ import {
   TransferCompletedEventSchema,
   TransferFailedEventSchema,
   TransferStatus,
+  createKafkaClientConfig,
   createLedgerEntryId,
   parseEvent,
 } from '@cn-banking/shared-types';
@@ -33,13 +34,9 @@ interface TransferResponse {
   data: Transfer;
 }
 
-const kafka = new Kafka({
-  clientId: `${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-ledger-service`,
-  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
-    .split(',')
-    .map((broker) => broker.trim())
-    .filter(Boolean),
-});
+const kafka = new Kafka(
+  createKafkaClientConfig(`${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-ledger-service`)
+);
 
 const consumer = kafka.consumer({
   groupId: `${process.env.KAFKA_GROUP_ID_PREFIX || 'cn-banking'}-ledger-service`,

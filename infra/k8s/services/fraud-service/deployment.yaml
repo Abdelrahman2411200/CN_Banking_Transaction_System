@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-service
+  namespace: banking
+  labels:
+    app: fraud-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fraud-service
+  template:
+    metadata:
+      labels:
+        app: fraud-service
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: fraud-service
+          image: "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/fraud-service:${IMAGE_TAG}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3004
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          env:
+            - name: FRAUD_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: FRAUD_SERVICE_PORT
+            - name: ACCOUNT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: ACCOUNT_SERVICE_URL
+            - name: MONGODB_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: MONGODB_DB_NAME
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: MONGODB_URI
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: MONGODB_URL
+            - name: KAFKA_BROKERS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_BROKERS
+            - name: KAFKA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_CLIENT_ID
+            - name: KAFKA_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_SSL
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_SASL_MECHANISM
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_USERNAME
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_PASSWORD
+            - name: KAFKA_GROUP_ID_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_GROUP_ID_PREFIX
+            - name: KAFKA_TOPIC_TRANSFER_INITIATED
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_TOPIC_TRANSFER_INITIATED
+            - name: KAFKA_TOPIC_FRAUD_ALERT
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: KAFKA_TOPIC_FRAUD_ALERT
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            failureThreshold: 12
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: tmp
+          emptyDir: {}

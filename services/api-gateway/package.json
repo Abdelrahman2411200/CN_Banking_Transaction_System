@@ -2,10 +2,12 @@
   "name": "api-gateway",
   "version": "1.0.0",
   "scripts": {
-    "start": "node src/index.js",
+    "build": "tsc -p tsconfig.json",
+    "dev": "node src/index.js",
+    "start": "node dist/index.js",
     "test": "jest --runInBand",
-    "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "express": "^4.19",

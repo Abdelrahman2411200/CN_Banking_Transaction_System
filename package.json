@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
+    "build:images": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-service-images.ps1",
+    "test:containers": "node --test tests/container/dockerfile-policy.test.mjs",
     "dev": "npm run -ws dev",
     "lint": "npm run -ws lint",
     "typecheck": "npm run -ws typecheck",

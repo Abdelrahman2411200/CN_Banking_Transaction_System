@@ -1,13 +1,11 @@
 import { Kafka, type Producer, type ProducerRecord } from 'kafkajs';
+import { createKafkaClientConfig } from './config';
 
 export class KafkaProducer {
   private producer: Producer;
 
   constructor(clientId: string, brokers: string[]) {
-    const kafka = new Kafka({
-      clientId,
-      brokers,
-    });
+    const kafka = new Kafka(createKafkaClientConfig(clientId, brokers));
     this.producer = kafka.producer();
   }
 

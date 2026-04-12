@@ -5,18 +5,15 @@ import {
   KafkaTopics,
   TransferCompletedEventSchema,
   TransferFailedEventSchema,
+  createKafkaClientConfig,
   parseEvent,
 } from '@cn-banking/shared-types';
 import type { FraudAlertEvent, TransferCompletedEvent, TransferFailedEvent } from '@cn-banking/shared-types';
 import { sendEmail, sendSms } from './adapters';
 
-const kafka = new Kafka({
-  clientId: `${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-notification-service`,
-  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
-    .split(',')
-    .map((broker) => broker.trim())
-    .filter(Boolean),
-});
+const kafka = new Kafka(
+  createKafkaClientConfig(`${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-notification-service`)
+);
 
 const consumer: Consumer = kafka.consumer({
   groupId: `${process.env.KAFKA_GROUP_ID_PREFIX || 'cn-banking'}-notification-service`,

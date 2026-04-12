@@ -114,3 +114,33 @@ tests/*/dist/
 .claude/
 .specify/
 .agents/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Kubernetes and local cloud credentials
+.kube/
+kubeconfig*
+*.secret.yaml
+secrets/
+*.key
+*.crt
+
+# Local deployment overlays
+infra/k8s/**/generated/
+infra/k8s/**/overlays/local/
+
+# Local tool installs
+.tools/

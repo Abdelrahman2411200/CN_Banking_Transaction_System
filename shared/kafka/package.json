@@ -1,6 +1,9 @@
 {
   "name": "@cn-banking/shared-kafka",
   "version": "1.0.0",
+  "files": [
+    "dist"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -9,9 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cn-banking/shared-types": "*",
     "kafkajs": "^2.2.4"
-  },
-  "devDependencies": {
-    "@cn-banking/shared-types": "*"
   }
 }

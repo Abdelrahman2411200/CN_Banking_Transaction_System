@@ -1,7 +1,8 @@
 import { KafkaProducer } from '@cn-banking/shared-kafka';
+import { getKafkaBrokers } from '@cn-banking/shared-types';
 
 const clientId = 'transfer-service';
-const brokers = [process.env.KAFKA_BROKERS || 'localhost:9092'];
+const brokers = getKafkaBrokers();
 
 export const producer = new KafkaProducer(clientId, brokers);
 

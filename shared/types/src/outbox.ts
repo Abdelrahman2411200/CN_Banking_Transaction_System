@@ -1,5 +1,6 @@
 import { Kafka, type Producer } from 'kafkajs';
 import type { Pool, PoolClient } from 'pg';
+import { createKafkaClientConfig } from './kafka-config';
 import { serializeEvent } from './events';
 import type { SupportedEvent } from './events';
 
@@ -29,13 +30,9 @@ export const enqueueOutboxEvent = async (
 };
 
 export const createOutboxPublisher = (clientIdSuffix: string) => {
-  const kafka = new Kafka({
-    clientId: `${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-${clientIdSuffix}`,
-    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
-      .split(',')
-      .map((broker) => broker.trim())
-      .filter(Boolean),
-  });
+  const kafka = new Kafka(
+    createKafkaClientConfig(`${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-${clientIdSuffix}`)
+  );
 
   const producer: Producer = kafka.producer();
 

@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-service
+  namespace: banking
+  labels:
+    app: ledger-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ledger-service
+  template:
+    metadata:
+      labels:
+        app: ledger-service
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: ledger-service
+          image: "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/ledger-service:${IMAGE_TAG}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3003
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          env:
+            - name: LEDGER_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: LEDGER_SERVICE_PORT
+            - name: TRANSFER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: TRANSFER_SERVICE_URL
+            - name: MONGODB_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: MONGODB_DB_NAME
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: MONGODB_URI
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: MONGODB_URL
+            - name: KAFKA_BROKERS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_BROKERS
+            - name: KAFKA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_CLIENT_ID
+            - name: KAFKA_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_SSL
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_SASL_MECHANISM
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_USERNAME
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_PASSWORD
+            - name: KAFKA_GROUP_ID_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_GROUP_ID_PREFIX
+            - name: KAFKA_TOPIC_TRANSFER_COMPLETED
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_TOPIC_TRANSFER_COMPLETED
+            - name: KAFKA_TOPIC_TRANSFER_FAILED
+              valueFrom:
+                configMapKeyRef:
+                  name: ledger-service-config
+                  key: KAFKA_TOPIC_TRANSFER_FAILED
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            failureThreshold: 12
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: tmp
+          emptyDir: {}

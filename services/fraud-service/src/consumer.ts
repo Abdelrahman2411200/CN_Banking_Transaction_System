@@ -12,6 +12,7 @@ import {
   KafkaTopics,
   TransferInitiatedEventSchema,
   buildBaseEvent,
+  createKafkaClientConfig,
   createDeterministicUuid,
   parseEvent,
   serializeEvent,
@@ -44,13 +45,9 @@ interface AccountBalanceResponse {
   };
 }
 
-const kafka = new Kafka({
-  clientId: `${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-fraud-service`,
-  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
-    .split(',')
-    .map((broker) => broker.trim())
-    .filter(Boolean),
-});
+const kafka = new Kafka(
+  createKafkaClientConfig(`${process.env.KAFKA_CLIENT_ID || 'cn-banking-platform'}-fraud-service`)
+);
 
 const consumer: Consumer = kafka.consumer({
   groupId: `${process.env.KAFKA_GROUP_ID_PREFIX || 'cn-banking'}-fraud-service`,

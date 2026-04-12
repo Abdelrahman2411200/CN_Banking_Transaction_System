@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: banking
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: notification-service
+          image: "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/notification-service:${IMAGE_TAG}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3005
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          env:
+            - name: NOTIFICATION_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: NOTIFICATION_SERVICE_PORT
+            - name: ACCOUNT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: ACCOUNT_SERVICE_URL
+            - name: KAFKA_BROKERS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_BROKERS
+            - name: KAFKA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_CLIENT_ID
+            - name: KAFKA_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_SSL
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_SASL_MECHANISM
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_USERNAME
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: KAFKA_SASL_PASSWORD
+            - name: KAFKA_GROUP_ID_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_GROUP_ID_PREFIX
+            - name: KAFKA_TOPIC_TRANSFER_COMPLETED
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_TOPIC_TRANSFER_COMPLETED
+            - name: KAFKA_TOPIC_TRANSFER_FAILED
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_TOPIC_TRANSFER_FAILED
+            - name: KAFKA_TOPIC_FRAUD_ALERT
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-service-config
+                  key: KAFKA_TOPIC_FRAUD_ALERT
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            failureThreshold: 12
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
