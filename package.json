@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "CN Banking Transaction System - Microservices Architecture",
+  "engines": {
+    "node": ">=20 <21"
+  },
   "workspaces": [
     "shared/*",
     "services/*"

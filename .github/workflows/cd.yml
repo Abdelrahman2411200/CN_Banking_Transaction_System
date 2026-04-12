@@ -1,0 +1,194 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service"
+  IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  ECR_REPOSITORY_PREFIX: cn-banking-prod
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  PUBLIC_DOMAIN: ${{ vars.PUBLIC_DOMAIN }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Validate deployment variables
+        run: |
+          set -euo pipefail
+          test -n "${AWS_REGION}" || { echo "Repository variable AWS_REGION is required"; exit 1; }
+          test -n "${PUBLIC_DOMAIN}" || { echo "Repository variable PUBLIC_DOMAIN is required"; exit 1; }
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - id: meta
+        run: echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+      - name: Build and push all service images
+        run: |
+          set -euo pipefail
+          for service in $SERVICES; do
+            image="$ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/$service:$IMAGE_TAG"
+            docker build --build-arg VERSION="$IMAGE_TAG" -f "services/$service/Dockerfile" -t "$image" .
+            docker push "$image"
+          done
+
+  terraform:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    outputs:
+      cluster_name: ${{ steps.tf_outputs.outputs.cluster_name }}
+      accounts_db_endpoint: ${{ steps.tf_outputs.outputs.accounts_db_endpoint }}
+      transfers_db_endpoint: ${{ steps.tf_outputs.outputs.transfers_db_endpoint }}
+      redis_endpoint: ${{ steps.tf_outputs.outputs.redis_endpoint }}
+      kafka_bootstrap_brokers: ${{ steps.tf_outputs.outputs.kafka_bootstrap_brokers }}
+      mongodb_endpoint: ${{ steps.tf_outputs.outputs.mongodb_endpoint }}
+    env:
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_accounts_db_password: ${{ secrets.DB_ACCOUNTS_PASSWORD }}
+      TF_VAR_transfers_db_password: ${{ secrets.DB_TRANSFERS_PASSWORD }}
+      TF_VAR_redis_auth_token: ${{ secrets.REDIS_PASSWORD }}
+      TF_VAR_documentdb_password: ${{ secrets.MONGODB_PASSWORD }}
+      TF_VAR_kafka_scram_password: ${{ secrets.KAFKA_SCRAM_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Terraform init
+        run: |
+          terraform -chdir=infra/terraform/environments/prod init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}"
+      - name: Terraform plan
+        run: terraform -chdir=infra/terraform/environments/prod plan -out=tfplan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/terraform/environments/prod/tfplan
+      - name: Terraform apply
+        run: terraform -chdir=infra/terraform/environments/prod apply -auto-approve tfplan
+      - id: tf_outputs
+        name: Export Terraform outputs
+        run: |
+          echo "cluster_name=$(terraform -chdir=infra/terraform/environments/prod output -raw cluster_name)" >> "$GITHUB_OUTPUT"
+          echo "accounts_db_endpoint=$(terraform -chdir=infra/terraform/environments/prod output -raw accounts_db_endpoint)" >> "$GITHUB_OUTPUT"
+          echo "transfers_db_endpoint=$(terraform -chdir=infra/terraform/environments/prod output -raw transfers_db_endpoint)" >> "$GITHUB_OUTPUT"
+          echo "redis_endpoint=$(terraform -chdir=infra/terraform/environments/prod output -raw redis_endpoint)" >> "$GITHUB_OUTPUT"
+          echo "kafka_bootstrap_brokers=$(terraform -chdir=infra/terraform/environments/prod output -raw kafka_bootstrap_brokers_sasl_scram)" >> "$GITHUB_OUTPUT"
+          echo "mongodb_endpoint=$(terraform -chdir=infra/terraform/environments/prod output -raw mongodb_compatible_endpoint)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: [build-and-push, terraform]
+    environment: production
+    env:
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      DB_ACCOUNTS_PASSWORD: ${{ secrets.DB_ACCOUNTS_PASSWORD }}
+      DB_TRANSFERS_PASSWORD: ${{ secrets.DB_TRANSFERS_PASSWORD }}
+      KAFKA_SASL_USERNAME: cn_banking_app
+      KAFKA_SASL_PASSWORD: ${{ secrets.KAFKA_SCRAM_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Configure kubeconfig
+        run: aws eks update-kubeconfig --name "${{ needs.terraform.outputs.cluster_name }}" --region "${{ vars.AWS_REGION }}"
+      - name: Apply namespace and runtime secrets
+        env:
+          REDIS_ENDPOINT: ${{ needs.terraform.outputs.redis_endpoint }}
+          KAFKA_BROKERS: ${{ needs.terraform.outputs.kafka_bootstrap_brokers }}
+          MONGODB_ENDPOINT: ${{ needs.terraform.outputs.mongodb_endpoint }}
+        run: |
+          set -euo pipefail
+          kubectl apply -f infra/k8s/namespace.yaml
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: banking-secrets
+            namespace: banking
+            labels:
+              app.kubernetes.io/part-of: cn-banking
+          type: Opaque
+          stringData:
+            JWT_ACCESS_SECRET: "${JWT_ACCESS_SECRET}"
+            JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET}"
+            REDIS_PASSWORD: "${REDIS_PASSWORD}"
+            REDIS_URL: "rediss://:${REDIS_PASSWORD}@${REDIS_ENDPOINT}:6379"
+            DB_ACCOUNTS_PASSWORD: "${DB_ACCOUNTS_PASSWORD}"
+            DB_TRANSFERS_PASSWORD: "${DB_TRANSFERS_PASSWORD}"
+            KAFKA_BROKERS: "${KAFKA_BROKERS}"
+            KAFKA_SASL_USERNAME: "${KAFKA_SASL_USERNAME}"
+            KAFKA_SASL_PASSWORD: "${KAFKA_SASL_PASSWORD}"
+            MONGODB_URI: "mongodb://${MONGODB_ENDPOINT}:27017/banking_events"
+            MONGODB_URL: "mongodb://${MONGODB_ENDPOINT}:27017"
+          EOF
+      - name: Render and apply manifests
+        run: |
+          set -euo pipefail
+          rm -rf rendered-k8s
+          mkdir rendered-k8s
+          cp -R infra/k8s/. rendered-k8s/
+          rm rendered-k8s/secrets.yaml
+          find rendered-k8s -type f -name '*.yaml' -print0 | xargs -0 sed -i \
+            -e "s|\${ECR_REGISTRY}|${ECR_REGISTRY}|g" \
+            -e "s|\${ECR_REPOSITORY_PREFIX}|${ECR_REPOSITORY_PREFIX}|g" \
+            -e "s|\${IMAGE_TAG}|${IMAGE_TAG}|g" \
+            -e "s|\${ACM_CERTIFICATE_ARN}|${{ secrets.ACM_CERTIFICATE_ARN }}|g" \
+            -e "s|\${PUBLIC_DOMAIN}|${PUBLIC_DOMAIN}|g" \
+            -e "s|replace-with-accounts-rds-endpoint|${{ needs.terraform.outputs.accounts_db_endpoint }}|g" \
+            -e "s|replace-with-transfers-rds-endpoint|${{ needs.terraform.outputs.transfers_db_endpoint }}|g" \
+            -e "s|replace-with-mongodb-compatible-endpoint|${{ needs.terraform.outputs.mongodb_endpoint }}|g"
+          kubectl apply --recursive -f rendered-k8s
+      - name: Verify rollout and rollback all services on failure
+        run: |
+          set -euo pipefail
+          failed=0
+          for service in $SERVICES; do
+            if ! kubectl rollout status "deployment/$service" -n banking --timeout=5m; then
+              failed=1
+              break
+            fi
+          done
+
+          if [ "$failed" -eq 1 ]; then
+            for service in $SERVICES; do
+              kubectl rollout undo "deployment/$service" -n banking || true
+            done
+            exit 1
+          fi

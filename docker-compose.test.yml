@@ -1,0 +1,308 @@
+name: cn-banking-test
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/commands/ruok | grep '\"error\" : null' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "${TEST_KAFKA_PORT:-9092}:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${TEST_KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:29092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  postgres-accounts:
+    image: postgres:16-alpine
+    ports:
+      - "${TEST_ACCOUNTS_DB_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: accounts_db
+      POSTGRES_USER: accounts_user
+      POSTGRES_PASSWORD: accounts_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accounts_user -d accounts_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  postgres-transfers:
+    image: postgres:16-alpine
+    ports:
+      - "${TEST_TRANSFERS_DB_PORT:-5434}:5432"
+    environment:
+      POSTGRES_DB: transfers_db
+      POSTGRES_USER: transfers_user
+      POSTGRES_PASSWORD: transfers_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transfers_user -d transfers_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "${TEST_MONGODB_PORT:-27017}:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${TEST_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  db-init:
+    build:
+      context: ./infra/db-init
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/sh", "-c", "/db-init/init.sh && touch /tmp/db-init-ready && tail -f /dev/null"]
+    environment:
+      ACCOUNTS_DB_HOST: postgres-accounts
+      ACCOUNTS_DB_PORT: 5432
+      ACCOUNTS_DB_NAME: accounts_db
+      ACCOUNTS_DB_USER: accounts_user
+      ACCOUNTS_DB_PASSWORD: accounts_pass
+      TRANSFERS_DB_HOST: postgres-transfers
+      TRANSFERS_DB_PORT: 5432
+      TRANSFERS_DB_NAME: transfers_db
+      TRANSFERS_DB_USER: transfers_user
+      TRANSFERS_DB_PASSWORD: transfers_pass
+    depends_on:
+      postgres-accounts:
+        condition: service_healthy
+      postgres-transfers:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/db-init-ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  account-service:
+    build:
+      context: .
+      dockerfile: ./services/account-service/Dockerfile
+    ports:
+      - "${TEST_ACCOUNT_SERVICE_PORT:-3001}:3001"
+    environment:
+      ACCOUNT_SERVICE_PORT: 3001
+      DB_HOST: postgres-accounts
+      DB_PORT: 5432
+      DB_NAME: accounts_db
+      DB_USER: accounts_user
+      DB_PASSWORD: accounts_pass
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: cn-banking-platform
+      KAFKA_GROUP_ID_PREFIX: cn-banking
+      KAFKA_TOPIC_ACCOUNT_CREATED: bank.account.created
+    depends_on:
+      db-init:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  transfer-service:
+    build:
+      context: .
+      dockerfile: ./services/transfer-service/Dockerfile
+    ports:
+      - "${TEST_TRANSFER_SERVICE_PORT:-3002}:3002"
+    environment:
+      TRANSFER_SERVICE_PORT: 3002
+      DB_HOST: postgres-transfers
+      DB_PORT: 5432
+      DB_NAME: transfers_db
+      DB_USER: transfers_user
+      DB_PASSWORD: transfers_pass
+      ACCOUNT_SERVICE_URL: http://account-service:3001
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: cn-banking-platform
+      KAFKA_GROUP_ID_PREFIX: cn-banking
+      KAFKA_TOPIC_TRANSFER_INITIATED: bank.transfer.initiated
+      KAFKA_TOPIC_TRANSFER_COMPLETED: bank.transfer.completed
+      KAFKA_TOPIC_TRANSFER_FAILED: bank.transfer.failed
+    depends_on:
+      db-init:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+
+  ledger-service:
+    build:
+      context: .
+      dockerfile: ./services/ledger-service/Dockerfile
+    ports:
+      - "${TEST_LEDGER_SERVICE_PORT:-3003}:3003"
+    environment:
+      LEDGER_SERVICE_PORT: 3003
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: cn-banking-platform
+      KAFKA_GROUP_ID_PREFIX: cn-banking
+      KAFKA_TOPIC_TRANSFER_COMPLETED: bank.transfer.completed
+      KAFKA_TOPIC_TRANSFER_FAILED: bank.transfer.failed
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DB_NAME: banking_events
+      TRANSFER_SERVICE_URL: http://transfer-service:3002
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
+  fraud-service:
+    build:
+      context: .
+      dockerfile: ./services/fraud-service/Dockerfile
+    ports:
+      - "${TEST_FRAUD_SERVICE_PORT:-3004}:3004"
+    environment:
+      FRAUD_SERVICE_PORT: 3004
+      ACCOUNT_SERVICE_URL: http://account-service:3001
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: cn-banking-platform
+      KAFKA_GROUP_ID_PREFIX: cn-banking
+      KAFKA_TOPIC_TRANSFER_INITIATED: bank.transfer.initiated
+      KAFKA_TOPIC_FRAUD_ALERT: bank.fraud.alert
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DB_NAME: banking_events
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    ports:
+      - "${TEST_NOTIFICATION_SERVICE_PORT:-3005}:3005"
+    environment:
+      NOTIFICATION_SERVICE_PORT: 3005
+      ACCOUNT_SERVICE_URL: http://account-service:3001
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: cn-banking-platform
+      KAFKA_GROUP_ID_PREFIX: cn-banking
+      KAFKA_TOPIC_TRANSFER_COMPLETED: bank.transfer.completed
+      KAFKA_TOPIC_TRANSFER_FAILED: bank.transfer.failed
+      KAFKA_TOPIC_FRAUD_ALERT: bank.fraud.alert
+    depends_on:
+      kafka:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./services/api-gateway/Dockerfile
+    ports:
+      - "${TEST_API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      PORT: 8080
+      NODE_ENV: test
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      REDIS_URL: redis://redis:6379
+      ACCOUNT_SERVICE_URL: http://account-service:3001
+      TRANSFER_SERVICE_URL: http://transfer-service:3002
+      LEDGER_SERVICE_URL: http://ledger-service:3003
+      FRAUD_SERVICE_URL: http://fraud-service:3004
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+    depends_on:
+      redis:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+      transfer-service:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+      fraud-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+
+  test-runner:
+    image: node:20.19.0-alpine
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - test_node_modules:/app/node_modules
+    environment:
+      ACCOUNT_SERVICE_URL: http://localhost:${TEST_ACCOUNT_SERVICE_PORT:-3001}
+      TRANSFER_SERVICE_URL: http://localhost:${TEST_TRANSFER_SERVICE_PORT:-3002}
+      LEDGER_SERVICE_URL: http://localhost:${TEST_LEDGER_SERVICE_PORT:-3003}
+      FRAUD_SERVICE_URL: http://localhost:${TEST_FRAUD_SERVICE_PORT:-3004}
+      NOTIFICATION_SERVICE_URL: http://localhost:${TEST_NOTIFICATION_SERVICE_PORT:-3005}
+      ACCOUNTS_DB_HOST: 127.0.0.1
+      ACCOUNTS_DB_HOST_PORT: ${TEST_ACCOUNTS_DB_PORT:-5433}
+      ACCOUNTS_DB_NAME: accounts_db
+      ACCOUNTS_DB_USER: accounts_user
+      ACCOUNTS_DB_PASSWORD: accounts_pass
+      TRANSFERS_DB_HOST: 127.0.0.1
+      TRANSFERS_DB_HOST_PORT: ${TEST_TRANSFERS_DB_PORT:-5434}
+      TRANSFERS_DB_NAME: transfers_db
+      TRANSFERS_DB_USER: transfers_user
+      TRANSFERS_DB_PASSWORD: transfers_pass
+      KAFKA_BROKERS: localhost:${TEST_KAFKA_PORT:-9092}
+      MONGODB_URI: mongodb://localhost:${TEST_MONGODB_PORT:-27017}
+      MONGODB_URL: mongodb://localhost:${TEST_MONGODB_PORT:-27017}
+      MONGODB_DB_NAME: banking_events
+      REDIS_URL: redis://localhost:${TEST_REDIS_PORT:-6379}
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+    command: >
+      sh -c "npm ci &&
+      node scripts/wait-for-http.mjs
+      http://localhost:${TEST_ACCOUNT_SERVICE_PORT:-3001}/health
+      http://localhost:${TEST_TRANSFER_SERVICE_PORT:-3002}/health
+      http://localhost:${TEST_LEDGER_SERVICE_PORT:-3003}/health
+      http://localhost:${TEST_FRAUD_SERVICE_PORT:-3004}/health
+      http://localhost:${TEST_NOTIFICATION_SERVICE_PORT:-3005}/health
+      http://localhost:${TEST_API_GATEWAY_PORT:-8080}/health &&
+      npm test &&
+      npm run test:containers"
+
+volumes:
+  test_node_modules:
