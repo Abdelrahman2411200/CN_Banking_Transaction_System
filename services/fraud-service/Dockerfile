@@ -26,6 +26,8 @@ ARG VERSION=dev
 ENV NODE_ENV=production \
     APP_VERSION=$VERSION
 
+RUN apk --no-cache upgrade
+
 COPY package*.json ./
 COPY shared/types/package.json ./shared/types/package.json
 COPY shared/kafka/package.json ./shared/kafka/package.json
@@ -35,7 +37,9 @@ COPY services/transfer-service/package.json ./services/transfer-service/package.
 COPY services/ledger-service/package.json ./services/ledger-service/package.json
 COPY services/fraud-service/package.json ./services/fraud-service/package.json
 COPY services/notification-service/package.json ./services/notification-service/package.json
-RUN npm ci --omit=dev --workspace @cn-banking/shared-types --workspace @cn-banking/fraud-service --include-workspace-root=false && npm cache clean --force
+RUN npm ci --omit=dev --workspace @cn-banking/shared-types --workspace @cn-banking/shared-kafka --workspace @cn-banking/fraud-service --include-workspace-root=false \
+    && npm cache clean --force \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=builder /app/shared/types/dist ./shared/types/dist
 COPY --from=builder /app/shared/kafka/dist ./shared/kafka/dist

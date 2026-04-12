@@ -144,3 +144,6 @@ infra/k8s/**/overlays/local/
 
 # Local tool installs
 .tools/
+
+
+logs_*/
