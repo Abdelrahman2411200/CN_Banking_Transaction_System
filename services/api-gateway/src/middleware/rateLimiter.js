@@ -48,6 +48,16 @@ const transferLimiter = rateLimit({
   store:          makeStore('ratelimit:transfer:'),
 });
 
+const sensitiveLimiter = rateLimit({
+  windowMs:       60_000,
+  max:            10,
+  keyGenerator:   (req) => req.user?.sub || req.ip,
+  handler:        rateLimitHandler,
+  standardHeaders: true,
+  legacyHeaders:  false,
+  store:          makeStore('ratelimit:sensitive:'),
+});
+
 const accountLimiter = rateLimit({
   windowMs:       60_000,
   max:            50,
@@ -58,4 +68,4 @@ const accountLimiter = rateLimit({
   store:          makeStore('ratelimit:account:'),
 });
 
-module.exports = { globalLimiter, loginLimiter, transferLimiter, accountLimiter };
+module.exports = { globalLimiter, loginLimiter, transferLimiter, accountLimiter, sensitiveLimiter };

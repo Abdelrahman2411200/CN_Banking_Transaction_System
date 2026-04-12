@@ -3,36 +3,51 @@ const redis = require('../redis');
 
 const IDEMPOTENCY_TTL = 24 * 60 * 60; // 24 hours in seconds
 
-module.exports = async function idempotency(req, res, next) {
+async function idempotency(req, res, next) {
   const key = req.headers['idempotency-key'];
 
-  if (!key)
+  if (!key) {
     return res.status(400).json({ error: 'idempotency_key_required' });
-
-  const redisKey = `idempotency:${key}`;
-  const cached   = await redis.get(redisKey);
-
-  if (cached) {
-    const { status, body } = JSON.parse(cached);
-    res.set('Idempotency-Status', 'hit');
-    return res.status(status).json(body);
   }
 
-  // Cache miss — intercept the response from the proxied service
+  const redisKey = `idempotency:${req.user?.sub || 'anonymous'}:${req.method}:${req.originalUrl}:${key}`;
+  const cached = await redis.get(redisKey);
+
+  if (cached) {
+    const { status, body, contentType } = JSON.parse(cached);
+    res.set('Idempotency-Status', 'hit');
+    if (contentType) {
+      res.set('Content-Type', contentType);
+    }
+    return res.status(status).send(body);
+  }
+
   res.set('Idempotency-Status', 'miss');
+  req.idempotency = { redisKey };
 
-  const originalJson = res.json.bind(res);
-  res.json = (body) => {
-    // Store in Redis before sending to client
-    redis.set(
-      redisKey,
-      JSON.stringify({ status: res.statusCode, body }),
-      'EX',
-      IDEMPOTENCY_TTL
-    ).catch((err) => console.error('[idempotency] redis write error:', err));
+  return next();
+}
 
-    return originalJson(body);
-  };
+idempotency.cacheProxyResponse = async function cacheProxyResponse(req, proxyRes, responseBuffer) {
+  if (!req.idempotency?.redisKey) {
+    return;
+  }
 
-  next();
+  const status = proxyRes.statusCode || 200;
+  if (status >= 500) {
+    return;
+  }
+
+  await redis.set(
+    req.idempotency.redisKey,
+    JSON.stringify({
+      status,
+      contentType: proxyRes.headers['content-type'],
+      body: responseBuffer.toString('utf8'),
+    }),
+    'EX',
+    IDEMPOTENCY_TTL
+  );
 };
+
+module.exports = idempotency;
