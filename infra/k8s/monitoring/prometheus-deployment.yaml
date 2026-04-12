@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: cn-banking
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-sd-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "endpoints", "services", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-sd-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-sd-reader
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['alertmanager:9093']
+    scrape_configs:
+      - job_name: 'api-gateway'
+        static_configs:
+          - targets: ['api-gateway.banking.svc.cluster.local:8080']
+        metrics_path: /metrics
+      - job_name: 'account-service'
+        static_configs:
+          - targets: ['account-service.banking.svc.cluster.local:3001']
+        metrics_path: /metrics
+      - job_name: 'transfer-service'
+        static_configs:
+          - targets: ['transfer-service.banking.svc.cluster.local:3002']
+        metrics_path: /metrics
+      - job_name: 'ledger-service'
+        static_configs:
+          - targets: ['ledger-service.banking.svc.cluster.local:3003']
+        metrics_path: /metrics
+      - job_name: 'fraud-service'
+        static_configs:
+          - targets: ['fraud-service.banking.svc.cluster.local:3004']
+        metrics_path: /metrics
+      - job_name: 'notification-service'
+        static_configs:
+          - targets: ['notification-service.banking.svc.cluster.local:3005']
+        metrics_path: /metrics
+      - job_name: 'kubernetes-pods-banking'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['banking']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: 'true'
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  alerting_rules.yml: |
+    groups:
+      - name: banking-alerts
+        rules:
+          - alert: HighErrorRate
+            expr: |
+              sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total[5m])) > 0.01
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High 5xx error rate on {{ $labels.job }}"
+              description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+          - alert: HighLatencyP99
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(http_request_duration_ms_bucket[5m])) by (job, le)
+              ) > 2000
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "P99 latency > 2s on {{ $labels.job }}"
+              description: "P99 latency is {{ $value }}ms."
+          - alert: FraudSpikeAlert
+            expr: rate(fraud_alerts_triggered_total[10m]) > 5
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Fraud alert spike detected"
+              description: "Fraud alerts firing at {{ $value }}/s over the last 10 minutes."
+          - alert: SagaCompensations
+            expr: rate(saga_compensations_total[5m]) > 0.1
+            for: 3m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Elevated SAGA compensation rate"
+              description: "Compensation rate is {{ $value }}/s."
+          - alert: KafkaConsumerLag
+            expr: kafka_consumer_lag > 1000
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Kafka consumer lag on {{ $labels.topic }}/{{ $labels.partition }}"
+              description: "Lag is {{ $value }} messages."
+          - alert: ServiceDown
+            expr: up == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service {{ $labels.job }} is down"
+              description: "Prometheus cannot scrape {{ $labels.instance }}."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.50.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+          ports:
+            - name: http
+              containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+            - name: prometheus-rules
+              mountPath: /etc/prometheus/rules/alerting_rules.yml
+              subPath: alerting_rules.yml
+            - name: prometheus-data
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+        - name: prometheus-rules
+          configMap:
+            name: prometheus-rules
+        - name: prometheus-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090

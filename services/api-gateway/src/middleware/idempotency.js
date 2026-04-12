@@ -1,5 +1,6 @@
 // src/middleware/idempotency.js
 const redis = require('../redis');
+const { idempotencyCacheHitsTotal } = require('../metrics');
 
 const IDEMPOTENCY_TTL = 24 * 60 * 60; // 24 hours in seconds
 
@@ -15,6 +16,7 @@ async function idempotency(req, res, next) {
 
   if (cached) {
     const { status, body, contentType } = JSON.parse(cached);
+    idempotencyCacheHitsTotal.inc();
     res.set('Idempotency-Status', 'hit');
     if (contentType) {
       res.set('Content-Type', contentType);

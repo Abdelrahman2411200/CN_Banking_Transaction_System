@@ -98,6 +98,66 @@ Notification-service is worker-first. Its HTTP surface is health/readiness only;
 
 Every attempt logs structured JSON with `notificationType`, `recipient`, `channel`, `status`, and `timestamp`.
 
+## Observability
+
+Phase 5 adds Prometheus metrics, Alertmanager routing, Grafana dashboards, Loki log storage, Promtail log collection, and k6 load testing.
+
+```text
+Banking Services (banking namespace)
+  api-gateway -> account-service
+             -> transfer-service -> fraud-service
+                               -> ledger-service
+                               -> notification-service
+
+Observability (monitoring namespace)
+  Prometheus (scrapes /metrics every 15s)
+  Alertmanager (routes alerts to PagerDuty / Slack)
+  Grafana (dashboards + Loki datasource)
+  Loki <- Promtail (scrapes pod logs from banking namespace)
+```
+
+Each service exposes unauthenticated Prometheus metrics at `GET /metrics` and emits JSON logs with `service`, `message`, `timestamp`, `requestId`, and `userId` when available.
+
+### Quick Start
+
+```bash
+kubectl apply -f infra/k8s/monitoring/
+node load-tests/seed.js
+k6 run load-tests/transfer-flow.js
+```
+
+The monitoring manifests use `emptyDir` storage for Prometheus and Loki to keep the first deployment simple. Use PVC-backed storage for production retention.
+
+### Grafana Access
+
+| Item | Value |
+|---|---|
+| URL | `http://<node-ip>:32000` (NodePort) or `http://localhost:3000` (port-forward) |
+| Username | `admin` |
+| Password | Value of `GF_SECURITY_ADMIN_PASSWORD` secret |
+| Dashboards | Banking Overview, Transfer Deep Dive, Fraud Monitoring, Infrastructure |
+
+### Port Forwarding
+
+```bash
+kubectl port-forward -n monitoring svc/grafana 3000:3000
+kubectl port-forward -n monitoring svc/prometheus 9090:9090
+kubectl port-forward -n monitoring svc/alertmanager 9093:9093
+```
+
+### Useful Checks
+
+```bash
+curl http://localhost:3001/metrics | grep http_requests_total
+curl http://localhost:3002/metrics | grep transfers_initiated_total
+```
+
+In Grafana Explore, use Loki:
+
+```text
+{namespace="banking"} | json | requestId="<request-id>"
+```
+
 ## Testing
 
 ```bash
@@ -185,6 +245,18 @@ Then create two accounts, post a transfer, and verify:
 | TRANSFERS_DB_NAME | transfers_db |
 | TRANSFERS_DB_USER | transfers_user |
 | TRANSFERS_DB_PASSWORD | transfers_pass |
+| PAGERDUTY_ROUTING_KEY | replace-with-pagerduty-routing-key |
+| SLACK_WEBHOOK_URL | https://hooks.slack.com/services/replace/with/webhook |
+| SMTP_HOST | smtp.example.com |
+| SMTP_FROM | alerts@example.com |
+| SMTP_USER | replace-with-smtp-user |
+| SMTP_PASSWORD | replace-with-smtp-password |
+| GF_SECURITY_ADMIN_PASSWORD | replace-with-grafana-admin-password |
+| SERVICE_NAME | set per service in Kubernetes configmaps |
+| LOG_LEVEL | info |
+| API_BASE_URL | http://localhost:8080 |
+| LOAD_TEST_USER_COUNT | 200 |
+| LOAD_TEST_PASSWORD | TestPass123! |
 
 ## Make Targets
 

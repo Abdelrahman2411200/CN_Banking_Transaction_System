@@ -3,6 +3,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const redis  = require('../redis');
 const { JWT_ACCESS_SECRET } = require('../config');
+const { authAttemptsTotal } = require('../metrics');
 
 const hashToken = (token) =>
   crypto.createHash('sha256').update(token).digest('hex');
@@ -10,10 +11,13 @@ const hashToken = (token) =>
 module.exports = async function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
 
-  if (!authHeader)
+  if (!authHeader) {
+    authAttemptsTotal.inc({ outcome: 'failure' });
     return res.status(401).json({ error: 'missing_token' });
+  }
 
   if (!authHeader.startsWith('Bearer ')) {
+    authAttemptsTotal.inc({ outcome: 'failure' });
     return res.status(401).json({ error: 'invalid_token' });
   }
 
@@ -23,20 +27,26 @@ module.exports = async function authMiddleware(req, res, next) {
   try {
     decoded = jwt.verify(token, JWT_ACCESS_SECRET);
   } catch (err) {
-    if (err.name === 'TokenExpiredError')
+    if (err.name === 'TokenExpiredError') {
+      authAttemptsTotal.inc({ outcome: 'expired' });
       return res.status(401).json({ error: 'token_expired' });
+    }
+    authAttemptsTotal.inc({ outcome: 'failure' });
     return res.status(401).json({ error: 'invalid_token' });
   }
 
   // Check blacklist
   const blacklisted = await redis.exists(`auth:blacklist:${hashToken(token)}`);
-  if (blacklisted)
+  if (blacklisted) {
+    authAttemptsTotal.inc({ outcome: 'blacklisted' });
     return res.status(401).json({ error: 'token_revoked' });
+  }
 
   // Attach user + forward headers
   req.user = decoded;
   req.headers['x-user-id']   = decoded.sub;
   req.headers['x-user-role'] = decoded.role;
+  authAttemptsTotal.inc({ outcome: 'success' });
 
   next();
 };

@@ -1,6 +1,7 @@
 // src/proxy.js
 const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 const { SERVICES } = require('./config');
+const { logger } = require('./logger');
 const idempotency = require('./middleware/idempotency');
 
 const proxyHandlers = {
@@ -10,7 +11,11 @@ const proxyHandlers = {
     if (req.headers['x-user-role']) proxyReq.setHeader('x-user-role', req.headers['x-user-role']);
   },
   error: (err, req, res) => {
-    console.error('[proxy] error:', err.message);
+    logger.error('proxy error', {
+      error: err.message,
+      requestId: req.requestId,
+      target: req.originalUrl,
+    });
     res.status(502).json({ error: 'upstream_unavailable' });
   },
 };
@@ -35,7 +40,10 @@ const transferProxy = createServiceProxy(SERVICES.transfer, {
       try {
         await idempotency.cacheProxyResponse(req, proxyRes, responseBuffer);
       } catch (err) {
-        console.error('[idempotency] redis write error:', err);
+        logger.error('idempotency redis write error', {
+          error: err instanceof Error ? err.message : String(err),
+          requestId: req.requestId,
+        });
       }
 
       return responseBuffer;

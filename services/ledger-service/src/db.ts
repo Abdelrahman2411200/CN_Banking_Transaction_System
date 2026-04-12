@@ -1,4 +1,5 @@
 import { MongoClient, type Db } from 'mongodb';
+import { logger } from './logger';
 
 const url = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const dbName = process.env.MONGODB_DB_NAME || 'ledger_db';
@@ -10,7 +11,7 @@ export async function initDb() {
   client = new MongoClient(url);
   await client.connect();
   db = client.db(dbName);
-  console.log('Ledger Service connected to MongoDB');
+  logger.info('ledger-service connected to MongoDB');
   return db;
 }
 

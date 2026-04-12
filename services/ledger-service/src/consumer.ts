@@ -2,6 +2,8 @@ import axios from 'axios';
 import { Kafka, type EachMessagePayload } from 'kafkajs';
 import { Decimal128, type Collection, MongoServerError } from 'mongodb';
 import { getDatabase } from './mongo';
+import { logger } from './logger';
+import { kafkaConsumerLag, ledgerEntriesWrittenTotal } from './metrics';
 import {
   KafkaTopics,
   TransferCompletedEventSchema,
@@ -90,11 +92,19 @@ const upsertEntries = async (entries: LedgerEntryDocument[]): Promise<void> => {
   await Promise.all(
     entries.map(async (entry) => {
       try {
-        await collection.updateOne(
+        const result = await collection.updateOne(
           { entryId: entry.entryId },
           { $setOnInsert: entry },
           { upsert: true }
         );
+        if (result?.upsertedCount && result.upsertedCount > 0) {
+          ledgerEntriesWrittenTotal.inc({ entry_type: entry.entryType });
+          logger.info('ledger entry written', {
+            entryId: entry.entryId,
+            transferId: entry.transferId,
+            entryType: entry.entryType,
+          });
+        }
       } catch (error: unknown) {
         if (!isDuplicateKeyError(error)) {
           throw error;
@@ -122,7 +132,16 @@ export const ensureLedgerIndexes = async (): Promise<void> => {
   await collection.createIndex({ transferId: 1, createdAt: -1 });
 };
 
-export const processLedgerEvent = async ({ topic, partition, message }: EachMessagePayload): Promise<void> => {
+export const processLedgerEvent = async (
+  { topic, partition, message }: EachMessagePayload,
+  highWatermarkValue?: string
+): Promise<void> => {
+  const highWatermark = Number(highWatermarkValue);
+  const offset = Number(message.offset);
+  if (Number.isFinite(highWatermark) && Number.isFinite(offset)) {
+    kafkaConsumerLag.set({ topic, partition: String(partition) }, Math.max(highWatermark - offset - 1, 0));
+  }
+
   const payload = message.value?.toString();
   if (!payload) {
     return;
@@ -169,8 +188,22 @@ export const startLedgerConsumer = async (): Promise<void> => {
   await consumer.subscribe({ topic: KafkaTopics.transferCompleted, fromBeginning: false });
   await consumer.subscribe({ topic: KafkaTopics.transferFailed, fromBeginning: false });
   await consumer.run({
-    eachMessage: async (payload) => {
-      await processLedgerEvent(payload);
+    eachBatchAutoResolve: true,
+    eachBatch: async (payload) => {
+      const { batch } = payload;
+      for (const message of batch.messages) {
+        await processLedgerEvent(
+          {
+            topic: batch.topic,
+            partition: batch.partition,
+            message,
+            heartbeat: () => payload.heartbeat(),
+            pause: () => payload.pause(),
+          },
+          batch.highWatermark
+        );
+        await payload.heartbeat();
+      }
     },
   });
 };

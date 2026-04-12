@@ -20,6 +20,8 @@ import {
   KafkaTopics,
   UpdateKycStatusSchema,
 } from '@cn-banking/shared-types';
+import { logger } from './logger';
+import { accountBalanceUsd, accountsCreatedTotal } from './metrics';
 
 const router = Router();
 const AccountIdParamSchema = z.object({ id: z.string().uuid() });
@@ -50,6 +52,10 @@ const isPgError = (error: unknown, code?: string): error is { code?: string } =>
   }
 
   return (error as { code?: string }).code === code;
+};
+
+const observeBalance = (balance: string): void => {
+  accountBalanceUsd.observe(Number(balance));
 };
 
 const getExistingAccountStatus = async (id: string): Promise<{ id: string; status: AccountStatus } | null> => {
@@ -104,6 +110,9 @@ router.post('/accounts', async (req: Request, res: Response) => {
 
     await enqueueOutboxEvent(client, KafkaTopics.accountCreated, account.id, event);
     await client.query('COMMIT');
+    accountsCreatedTotal.inc();
+    observeBalance(account.balance);
+    logger.info('account created', { accountId: account.id });
     return res.status(201).json(response);
   } catch (error: unknown) {
     await client.query('ROLLBACK');
@@ -112,7 +121,7 @@ router.post('/accounts', async (req: Request, res: Response) => {
       return sendError(res, 409, 'CONFLICT', 'Account with this email already exists');
     }
 
-    console.error('Error creating account:', error);
+    logger.error('error creating account', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   } finally {
     client.release();
@@ -140,12 +149,13 @@ router.get('/accounts/:id', async (req: Request, res: Response) => {
       return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
+    observeBalance(account.balance);
     return res.status(200).json({
       success: true,
       data: account,
     });
   } catch (error: unknown) {
-    console.error('Error getting account:', error);
+    logger.error('error getting account', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
@@ -175,9 +185,10 @@ router.get('/accounts/:id/balance', async (req: Request, res: Response) => {
       success: true,
       data: row,
     };
+    observeBalance(row.balance);
     return res.status(200).json(response);
   } catch (error: unknown) {
-    console.error('Error getting balance:', error);
+    logger.error('error getting balance', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
@@ -215,9 +226,10 @@ router.patch('/accounts/:id/kyc', async (req: Request, res: Response) => {
       success: true,
       data: account,
     };
+    observeBalance(account.balance);
     return res.status(200).json(response);
   } catch (error: unknown) {
-    console.error('Error updating KYC status:', error);
+    logger.error('error updating KYC status', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
@@ -264,9 +276,10 @@ router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
       success: true,
       data: account,
     };
+    observeBalance(account.balance);
     return res.status(200).json(response);
   } catch (error: unknown) {
-    console.error('Error debiting account:', error);
+    logger.error('error debiting account', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
@@ -309,9 +322,10 @@ router.patch('/accounts/:id/credit', async (req: Request, res: Response) => {
       success: true,
       data: account,
     };
+    observeBalance(account.balance);
     return res.status(200).json(response);
   } catch (error: unknown) {
-    console.error('Error crediting account:', error);
+    logger.error('error crediting account', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });
@@ -346,7 +360,7 @@ router.post('/accounts/:id/freeze', async (req: Request, res: Response) => {
 
     return res.status(200).json(response);
   } catch (error: unknown) {
-    console.error('Error freezing account:', error);
+    logger.error('error freezing account', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });

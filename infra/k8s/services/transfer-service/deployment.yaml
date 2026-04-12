@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         app: transfer-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3002"
     spec:
       terminationGracePeriodSeconds: 60
       containers:
@@ -26,6 +30,21 @@ spec:
             - name: tmp
               mountPath: /tmp
           env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: transfer-service-config
+                  key: NODE_ENV
+            - name: SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: transfer-service-config
+                  key: SERVICE_NAME
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: transfer-service-config
+                  key: LOG_LEVEL
             - name: TRANSFER_SERVICE_PORT
               valueFrom:
                 configMapKeyRef:

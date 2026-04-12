@@ -5,6 +5,7 @@ metadata:
   namespace: banking
 data:
   NODE_ENV: "production"
+  SERVICE_NAME: "api-gateway"
   LOG_LEVEL: "info"
   PORT: "8080"
   ACCOUNT_SERVICE_URL: "http://account-service:3001"

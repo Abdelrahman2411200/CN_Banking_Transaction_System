@@ -2,6 +2,12 @@ import axios from 'axios';
 import { Kafka, type Consumer, type Producer } from 'kafkajs';
 import { Decimal128, MongoServerError, type Collection } from 'mongodb';
 import { getDatabase } from './mongo';
+import { logger } from './logger';
+import {
+  fraudAlertsTriggeredTotal,
+  fraudEvaluationDurationMs,
+  fraudRulesEvaluatedTotal,
+} from './metrics';
 import {
   evaluateLargeTransfer,
   evaluateRapidDrain,
@@ -124,12 +130,21 @@ const evaluateRules = async (event: TransferInitiatedEvent): Promise<RuleResult[
     getAccountBalance(event.fromAccountId),
   ]);
 
-  return [
-    evaluateLargeTransfer(amount),
-    evaluateVelocityCheck(recentTransferCount),
-    evaluateRoundNumber(amount),
-    evaluateRapidDrain(recentOutgoingTotal, balance),
-  ].filter((result): result is RuleResult => result !== null);
+  fraudRulesEvaluatedTotal.inc({ rule_name: 'large_transfer' });
+  const largeTransfer = evaluateLargeTransfer(amount);
+
+  fraudRulesEvaluatedTotal.inc({ rule_name: 'velocity_check' });
+  const velocityCheck = evaluateVelocityCheck(recentTransferCount);
+
+  fraudRulesEvaluatedTotal.inc({ rule_name: 'round_number' });
+  const roundNumber = evaluateRoundNumber(amount);
+
+  fraudRulesEvaluatedTotal.inc({ rule_name: 'rapid_drain' });
+  const rapidDrain = evaluateRapidDrain(recentOutgoingTotal, balance);
+
+  return [largeTransfer, velocityCheck, roundNumber, rapidDrain].filter(
+    (result): result is RuleResult => result !== null
+  );
 };
 
 const buildAlertEvent = (event: TransferInitiatedEvent, result: RuleResult): FraudAlertEvent => ({
@@ -170,6 +185,17 @@ const persistAndEmitAlert = async (
     messages: [{ key: alertEvent.alertId, value: serializeEvent(alertEvent) }],
   });
 
+  fraudAlertsTriggeredTotal.inc({
+    rule_name: alertEvent.ruleTriggered,
+    severity: alertEvent.severity,
+  });
+  logger.info('fraud alert triggered', {
+    alertId: alertEvent.alertId,
+    transferId: alertEvent.transferId,
+    ruleName: alertEvent.ruleTriggered,
+    severity: alertEvent.severity,
+  });
+
   if (alertEvent.severity === 'critical') {
     await freezeAccount(alertEvent.fromAccountId);
   }
@@ -191,7 +217,14 @@ export const processFraudEvent = async (payload: string): Promise<void> => {
     return;
   }
 
-  const rules = await evaluateRules(event);
+  const startedAt = process.hrtime.bigint();
+  let rules: RuleResult[] = [];
+  try {
+    rules = await evaluateRules(event);
+  } finally {
+    fraudEvaluationDurationMs.observe(Number(process.hrtime.bigint() - startedAt) / 1_000_000);
+  }
+
   for (const rule of rules) {
     const alertEvent = buildAlertEvent(event, rule);
     await persistAndEmitAlert(event, alertEvent);

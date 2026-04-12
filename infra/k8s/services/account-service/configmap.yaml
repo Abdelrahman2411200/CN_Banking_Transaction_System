@@ -5,6 +5,7 @@ metadata:
   namespace: banking
 data:
   NODE_ENV: "production"
+  SERVICE_NAME: "account-service"
   LOG_LEVEL: "info"
   ACCOUNT_SERVICE_PORT: "3001"
   DB_HOST: "replace-with-accounts-rds-endpoint"

@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         app: fraud-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3004"
     spec:
       terminationGracePeriodSeconds: 60
       containers:
@@ -26,6 +30,21 @@ spec:
             - name: tmp
               mountPath: /tmp
           env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: NODE_ENV
+            - name: SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: SERVICE_NAME
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: fraud-service-config
+                  key: LOG_LEVEL
             - name: FRAUD_SERVICE_PORT
               valueFrom:
                 configMapKeyRef:

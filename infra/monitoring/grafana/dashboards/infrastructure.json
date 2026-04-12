@@ -1,0 +1,78 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "uid": "infrastructure-v1",
+  "title": "Infrastructure",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "query": "label_values(http_requests_total, job)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU per Service",
+      "repeat": "service",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "rate(process_cpu_seconds_total{job=~\"$service\"}[1m])", "refId": "A" }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory per Service",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "process_resident_memory_bytes{job=~\"$service\"}", "refId": "A" }]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Kafka Consumer Lag per Topic",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "sum by(topic) (kafka_consumer_lag)", "refId": "A" }]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Redis Memory Usage",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "redis_memory_used_bytes", "refId": "A" }]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "DB Connection Pool",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "db_pool_active_connections", "refId": "A" }]
+    }
+  ]
+}

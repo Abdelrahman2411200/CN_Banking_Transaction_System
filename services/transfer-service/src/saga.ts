@@ -1,6 +1,8 @@
 import axios, { isAxiosError } from 'axios';
 import type { Pool } from 'pg';
 import { pool } from './db';
+import { logger } from './logger';
+import { sagaCompensationsTotal, transferAmountUsd, transfersInitiatedTotal } from './metrics';
 import { enqueueOutboxEvent } from './outbox';
 import { KafkaTopics, SagaStep, TransferStatus } from '@cn-banking/shared-types';
 import type {
@@ -34,7 +36,8 @@ export class TransferSaga {
   async execute(
     fromAccountId: string,
     toAccountId: string,
-    amount: string
+    amount: string,
+    requestId?: string
   ): Promise<Transfer> {
     const sagaState: SagaState = {
       current_step: SagaStep.CREATE,
@@ -50,17 +53,21 @@ export class TransferSaga {
       sagaState.current_step = SagaStep.DEBIT;
       await this.updateSagaState(transferId, sagaState);
 
-      await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/debit`, {
-        amount,
-      });
+      await this.httpClient.patch(
+        `${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/debit`,
+        { amount },
+        this.buildRequestConfig(requestId)
+      );
       sagaState.debit_completed = true;
 
       sagaState.current_step = SagaStep.CREDIT;
       await this.updateSagaState(transferId, sagaState);
 
-      await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${toAccountId}/credit`, {
-        amount,
-      });
+      await this.httpClient.patch(
+        `${ACCOUNT_SERVICE_URL}/v1/accounts/${toAccountId}/credit`,
+        { amount },
+        this.buildRequestConfig(requestId)
+      );
       sagaState.credit_completed = true;
       sagaState.current_step = SagaStep.COMPLETED;
 
@@ -86,6 +93,7 @@ export class TransferSaga {
         throw new Error('Failed to persist completed transfer state');
       }
 
+      this.recordTerminalTransfer('completed', amount, transferId);
       return completedTransfer;
     } catch (error: unknown) {
       const originalErrorMessage = isAxiosError(error) && error.response?.status === 422
@@ -110,6 +118,7 @@ export class TransferSaga {
           originalErrorMessage,
           failedEvent
         );
+        this.recordTerminalTransfer('failed', amount, transferId);
         throw error;
       }
 
@@ -122,9 +131,12 @@ export class TransferSaga {
       );
 
       try {
-        await this.httpClient.patch(`${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/credit`, {
-          amount,
-        });
+        sagaCompensationsTotal.inc();
+        await this.httpClient.patch(
+          `${ACCOUNT_SERVICE_URL}/v1/accounts/${fromAccountId}/credit`,
+          { amount },
+          this.buildRequestConfig(requestId)
+        );
         sagaState.compensation_completed = true;
 
         const failedEvent = this.buildFailedEvent(
@@ -142,11 +154,15 @@ export class TransferSaga {
           originalErrorMessage,
           failedEvent
         );
+        this.recordTerminalTransfer('compensated', amount, transferId);
       } catch (compensationError: unknown) {
         const combinedErrorMessage =
           `Credit failed: ${originalErrorMessage}; compensation failed: ${getErrorMessage(compensationError)}`;
 
-        console.error('Compensation failed:', compensationError);
+        logger.error('compensation failed', {
+          transferId,
+          error: compensationError instanceof Error ? compensationError.message : String(compensationError),
+        });
         sagaState.error = combinedErrorMessage;
 
         const failedEvent = this.buildFailedEvent(
@@ -164,10 +180,21 @@ export class TransferSaga {
           combinedErrorMessage,
           failedEvent
         );
+        this.recordTerminalTransfer('failed', amount, transferId);
       }
 
       throw error;
     }
+  }
+
+  private buildRequestConfig(requestId?: string): { headers?: Record<string, string> } {
+    return requestId ? { headers: { 'x-request-id': requestId } } : {};
+  }
+
+  private recordTerminalTransfer(status: 'completed' | 'failed' | 'compensated', amount: string, transferId: string): void {
+    transfersInitiatedTotal.inc({ status });
+    transferAmountUsd.observe(Number(amount));
+    logger.info('transfer terminal state recorded', { transferId, status });
   }
 
   async getTransferById(transferId: string): Promise<Transfer | null> {

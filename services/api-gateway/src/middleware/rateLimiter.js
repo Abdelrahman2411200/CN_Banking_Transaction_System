@@ -2,8 +2,10 @@
 const rateLimit  = require('express-rate-limit');
 const RedisStore = require('rate-limit-redis').default;
 const redis      = require('../redis');
+const { rateLimitHitsTotal } = require('../metrics');
 
 const rateLimitHandler = (req, res, options) => {
+  rateLimitHitsTotal.inc({ limit_type: options.identifier || 'unknown' });
   res.status(429).json({
     error:      'rate_limit_exceeded',
     retryAfter: Math.ceil(options.windowMs / 1000),
@@ -19,6 +21,7 @@ const makeStore = (prefix) =>
   });
 
 const globalLimiter = rateLimit({
+  identifier:      'global',
   windowMs:       60_000,
   max:            200,
   keyGenerator:   (req) => req.ip,
@@ -29,6 +32,7 @@ const globalLimiter = rateLimit({
 });
 
 const loginLimiter = rateLimit({
+  identifier:      'login',
   windowMs:       60_000,
   max:            10,
   keyGenerator:   (req) => req.ip,
@@ -39,6 +43,7 @@ const loginLimiter = rateLimit({
 });
 
 const transferLimiter = rateLimit({
+  identifier:      'transfer',
   windowMs:       60_000,
   max:            20,
   keyGenerator:   (req) => req.user?.sub || req.ip,
@@ -49,6 +54,7 @@ const transferLimiter = rateLimit({
 });
 
 const sensitiveLimiter = rateLimit({
+  identifier:      'sensitive',
   windowMs:       60_000,
   max:            10,
   keyGenerator:   (req) => req.user?.sub || req.ip,
@@ -59,6 +65,7 @@ const sensitiveLimiter = rateLimit({
 });
 
 const accountLimiter = rateLimit({
+  identifier:      'account',
   windowMs:       60_000,
   max:            50,
   keyGenerator:   (req) => req.user?.sub || req.ip,

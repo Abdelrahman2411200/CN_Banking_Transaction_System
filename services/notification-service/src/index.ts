@@ -1,19 +1,18 @@
-import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import express from 'express';
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { KafkaTopics } from '@cn-banking/shared-types';
+import { logger, requestLogger } from './logger';
+import { metricsHandler, metricsMiddleware } from './metrics';
 import { startNotificationConsumer, stopNotificationConsumer } from './consumer';
 
 const app = express();
 const PORT = Number(process.env.NOTIFICATION_SERVICE_PORT || 3005);
 
 app.use(express.json({ limit: '100kb' }));
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const requestId = req.header('x-request-id') || randomUUID();
-  res.setHeader('x-request-id', requestId);
-  next();
-});
+app.use(requestLogger);
+app.use(metricsMiddleware);
+app.get('/metrics', metricsHandler);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ success: true, data: { status: 'ok' } });
@@ -37,11 +36,11 @@ app.get('/v1/notifications', (_req: Request, res: Response) => {
 
 const startServer = (): Server =>
   app.listen(PORT, () => {
-    console.log(`Notification Service listening on port ${PORT}`);
+    logger.info('notification-service listening', { port: PORT });
   });
 
 const shutdown = (server: Server, signal: string): void => {
-  console.log(`${signal} received, shutting down notification-service`);
+  logger.info('shutdown signal received', { signal });
   server.close(async () => {
     await stopNotificationConsumer();
     process.exit(0);
@@ -56,7 +55,9 @@ if (require.main === module) {
       process.on('SIGINT', () => shutdown(server, 'SIGINT'));
     })
     .catch((error: unknown) => {
-      console.error('Failed to bootstrap notification-service', error);
+      logger.error('failed to bootstrap notification-service', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       process.exit(1);
     });
 }

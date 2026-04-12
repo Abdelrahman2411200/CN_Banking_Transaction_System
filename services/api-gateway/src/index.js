@@ -1,6 +1,8 @@
 // src/index.js
 const express = require('express');
 const { PORT, SERVICES } = require('./config');
+const { logger, requestLogger } = require('./logger');
+const { metricsMiddleware, metricsHandler } = require('./metrics');
 
 const securityHeaders  = require('./middleware/securityHeaders');
 const authMiddleware   = require('./middleware/auth');
@@ -21,6 +23,9 @@ const app = express();
 
 // 1. Security headers + request ID on every response
 app.use(securityHeaders);
+app.use(requestLogger);
+app.use(metricsMiddleware);
+app.get('/metrics', metricsHandler);
 
 // 2. Global IP rate limiter
 app.use(globalLimiter);
@@ -77,4 +82,4 @@ app.use('/v1/notifications', authMiddleware, adminOnly, sensitiveLimiter, notifi
 // 7. 404 fallback
 app.use((req, res) => res.status(404).json({ error: 'not_found' }));
 
-app.listen(PORT, () => console.log(`[gateway] listening on port ${PORT}`));
+app.listen(PORT, () => logger.info('gateway listening', { port: PORT }));

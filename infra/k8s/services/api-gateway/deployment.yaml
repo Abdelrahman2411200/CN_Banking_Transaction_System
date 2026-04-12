@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         app: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8080"
     spec:
       terminationGracePeriodSeconds: 60
       containers:
@@ -31,6 +35,11 @@ spec:
                 configMapKeyRef:
                   name: api-gateway-config
                   key: NODE_ENV
+            - name: SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: api-gateway-config
+                  key: SERVICE_NAME
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

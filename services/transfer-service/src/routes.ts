@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
+import { logger } from './logger';
 import { TransferSaga } from './saga';
 import { CreateTransferSchema } from '@cn-banking/shared-types';
 import type {
@@ -40,7 +41,12 @@ router.post('/transfers', async (req: Request, res: Response) => {
   try {
     const { from_account_id, to_account_id, amount } = validation.data;
 
-    const transfer = await saga.execute(from_account_id, to_account_id, amount);
+    const transfer = await saga.execute(
+      from_account_id,
+      to_account_id,
+      amount,
+      res.locals.requestId as string | undefined
+    );
 
     const response: CreateTransferResponse = {
       success: true,
@@ -48,7 +54,7 @@ router.post('/transfers', async (req: Request, res: Response) => {
     };
     return res.status(201).json(response);
   } catch (error: unknown) {
-    console.error('Error creating transfer:', error);
+    logger.error('error creating transfer', { error: error instanceof Error ? error.message : String(error) });
 
     if (isAxiosError(error)) {
       if (error.response?.status === 422) {
@@ -87,7 +93,7 @@ router.get('/transfers/:id', async (req: Request, res: Response) => {
       data: transfer,
     } satisfies { success: true; data: Transfer });
   } catch (error: unknown) {
-    console.error('Error getting transfer:', error);
+    logger.error('error getting transfer', { error: error instanceof Error ? error.message : String(error) });
     return sendError(res, 500, 'DATABASE_ERROR', 'Internal server error');
   }
 });

@@ -5,6 +5,7 @@ metadata:
   namespace: banking
 data:
   NODE_ENV: "production"
+  SERVICE_NAME: "ledger-service"
   LOG_LEVEL: "info"
   LEDGER_SERVICE_PORT: "3003"
   TRANSFER_SERVICE_URL: "http://transfer-service:3002"

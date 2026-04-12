@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import express from 'express';
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { logger, requestLogger } from './logger';
+import { metricsHandler, metricsMiddleware } from './metrics';
 import { closeMongo, connectMongo, getDatabase } from './mongo';
 import { startFraudConsumer, stopFraudConsumer, type FraudEventDocument } from './consumer';
 
@@ -20,11 +21,9 @@ const alertsQuerySchema = z.object({
 });
 
 app.use(express.json({ limit: '100kb' }));
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const requestId = req.header('x-request-id') || randomUUID();
-  res.setHeader('x-request-id', requestId);
-  next();
-});
+app.use(requestLogger);
+app.use(metricsMiddleware);
+app.get('/metrics', metricsHandler);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ success: true, data: { status: 'ok' } });
@@ -129,11 +128,11 @@ app.get('/v1/fraud/stats', async (_req: Request, res: Response) => {
 
 const startServer = (): Server =>
   app.listen(PORT, () => {
-    console.log(`Fraud Service listening on port ${PORT}`);
+    logger.info('fraud-service listening', { port: PORT });
   });
 
 const shutdown = (server: Server, signal: string): void => {
-  console.log(`${signal} received, shutting down fraud-service`);
+  logger.info('shutdown signal received', { signal });
   server.close(async () => {
     await stopFraudConsumer();
     await closeMongo();
@@ -150,7 +149,9 @@ if (require.main === module) {
       process.on('SIGINT', () => shutdown(server, 'SIGINT'));
     })
     .catch((error: unknown) => {
-      console.error('Failed to bootstrap fraud-service', error);
+      logger.error('failed to bootstrap fraud-service', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       process.exit(1);
     });
 }

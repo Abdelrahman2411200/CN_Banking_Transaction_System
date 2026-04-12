@@ -5,6 +5,7 @@ metadata:
   namespace: banking
 data:
   NODE_ENV: "production"
+  SERVICE_NAME: "transfer-service"
   LOG_LEVEL: "info"
   TRANSFER_SERVICE_PORT: "3002"
   DB_HOST: "replace-with-transfers-rds-endpoint"

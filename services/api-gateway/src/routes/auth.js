@@ -6,6 +6,8 @@ const crypto  = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const redis   = require('../redis');
 const { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } = require('../config');
+const { logger } = require('../logger');
+const { authAttemptsTotal } = require('../metrics');
 const { loginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -52,7 +54,7 @@ router.post('/register', async (req, res) => {
 
     return res.status(201).json({ userId, email, role });
   } catch (err) {
-    console.error('[register]', err);
+    logger.error('register failed', { error: err instanceof Error ? err.message : String(err) });
     return res.status(500).json({ error: 'internal_error' });
   }
 });
@@ -63,15 +65,19 @@ router.post('/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     const userId = await redis.get(`auth:email:${email}`);
-    if (!userId)
+    if (!userId) {
+      authAttemptsTotal.inc({ outcome: 'failure' });
       return res.status(401).json({ error: 'invalid_credentials' });
+    }
 
     const raw  = await redis.get(`auth:user:${userId}`);
     const user = JSON.parse(raw);
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid)
+    if (!valid) {
+      authAttemptsTotal.inc({ outcome: 'failure' });
       return res.status(401).json({ error: 'invalid_credentials' });
+    }
 
     const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user.userId);
@@ -84,9 +90,10 @@ router.post('/login', loginLimiter, async (req, res) => {
       REFRESH_TOKEN_TTL
     );
 
+    authAttemptsTotal.inc({ outcome: 'success' });
     return res.status(200).json({ accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL });
   } catch (err) {
-    console.error('[login]', err);
+    logger.error('login failed', { error: err instanceof Error ? err.message : String(err) });
     return res.status(500).json({ error: 'internal_error' });
   }
 });
@@ -100,8 +107,10 @@ router.post('/refresh', async (req, res) => {
 
     // Check Redis first
     const userId = await redis.get(`auth:refresh:${hashToken(refreshToken)}`);
-    if (!userId)
+    if (!userId) {
+      authAttemptsTotal.inc({ outcome: 'failure' });
       return res.status(401).json({ error: 'invalid_refresh_token' });
+    }
 
     // Verify signature
     jwt.verify(refreshToken, JWT_REFRESH_SECRET);
@@ -110,11 +119,14 @@ router.post('/refresh', async (req, res) => {
     const user = JSON.parse(raw);
 
     const accessToken = generateAccessToken(user);
+    authAttemptsTotal.inc({ outcome: 'success' });
     return res.status(200).json({ accessToken, expiresIn: ACCESS_TOKEN_TTL });
   } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError')
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      authAttemptsTotal.inc({ outcome: err.name === 'TokenExpiredError' ? 'expired' : 'failure' });
       return res.status(401).json({ error: 'invalid_refresh_token' });
-    console.error('[refresh]', err);
+    }
+    logger.error('refresh failed', { error: err instanceof Error ? err.message : String(err) });
     return res.status(500).json({ error: 'internal_error' });
   }
 });
@@ -140,7 +152,7 @@ router.post('/logout', async (req, res) => {
 
     return res.status(204).send();
   } catch (err) {
-    console.error('[logout]', err);
+    logger.error('logout failed', { error: err instanceof Error ? err.message : String(err) });
     return res.status(500).json({ error: 'internal_error' });
   }
 });

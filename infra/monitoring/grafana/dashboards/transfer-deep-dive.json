@@ -1,0 +1,58 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "uid": "transfer-deep-dive-v1",
+  "title": "Transfer Deep Dive",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Transfer Outcomes",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "sum by(status) (rate(transfers_initiated_total[5m]))", "refId": "A" }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Transfer Amount P95",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(transfer_amount_usd_bucket[5m])) by (le))", "refId": "A" }]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "SAGA Compensations",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "increase(saga_compensations_total[1h])", "refId": "A" }]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Top 10 Slowest Routes",
+      "gridPos": { "h": 10, "w": 16, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "topk(10, histogram_quantile(0.99, sum by(route, le) (rate(http_request_duration_ms_bucket{job=\"transfer-service\"}[5m]))))", "refId": "A", "format": "table", "instant": true }]
+    }
+  ]
+}

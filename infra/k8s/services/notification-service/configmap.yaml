@@ -5,6 +5,7 @@ metadata:
   namespace: banking
 data:
   NODE_ENV: "production"
+  SERVICE_NAME: "notification-service"
   LOG_LEVEL: "info"
   NOTIFICATION_SERVICE_PORT: "3005"
   ACCOUNT_SERVICE_URL: "http://account-service:3001"

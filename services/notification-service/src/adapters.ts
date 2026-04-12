@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 export interface NotificationAttempt {
   notificationType: string;
   recipient: string;
@@ -7,7 +9,7 @@ export interface NotificationAttempt {
 }
 
 const logAttempt = (attempt: NotificationAttempt): void => {
-  console.info(JSON.stringify(attempt));
+  logger.info('notification sent', attempt);
 };
 
 export const sendEmail = (notificationType: string, recipient: string): Promise<void> => {
