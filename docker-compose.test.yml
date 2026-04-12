@@ -18,12 +18,12 @@ services:
       zookeeper:
         condition: service_healthy
     ports:
-      - "9092:9092"
+      - "${TEST_KAFKA_PORT:-9092}:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${TEST_KAFKA_PORT:-9092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -31,7 +31,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:29092 --list >/dev/null 2>&1"]
       interval: 10s
       timeout: 10s
       retries: 12
@@ -39,7 +39,7 @@ services:
   postgres-accounts:
     image: postgres:16-alpine
     ports:
-      - "5433:5432"
+      - "${TEST_ACCOUNTS_DB_PORT:-5433}:5432"
     environment:
       POSTGRES_DB: accounts_db
       POSTGRES_USER: accounts_user
@@ -53,7 +53,7 @@ services:
   postgres-transfers:
     image: postgres:16-alpine
     ports:
-      - "5434:5432"
+      - "${TEST_TRANSFERS_DB_PORT:-5434}:5432"
     environment:
       POSTGRES_DB: transfers_db
       POSTGRES_USER: transfers_user
@@ -67,7 +67,7 @@ services:
   mongodb:
     image: mongo:7.0
     ports:
-      - "27017:27017"
+      - "${TEST_MONGODB_PORT:-27017}:27017"
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1"]
       interval: 10s
@@ -77,7 +77,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${TEST_REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -116,7 +116,7 @@ services:
       context: .
       dockerfile: ./services/account-service/Dockerfile
     ports:
-      - "3001:3001"
+      - "${TEST_ACCOUNT_SERVICE_PORT:-3001}:3001"
     environment:
       ACCOUNT_SERVICE_PORT: 3001
       DB_HOST: postgres-accounts
@@ -139,7 +139,7 @@ services:
       context: .
       dockerfile: ./services/transfer-service/Dockerfile
     ports:
-      - "3002:3002"
+      - "${TEST_TRANSFER_SERVICE_PORT:-3002}:3002"
     environment:
       TRANSFER_SERVICE_PORT: 3002
       DB_HOST: postgres-transfers
@@ -167,7 +167,7 @@ services:
       context: .
       dockerfile: ./services/ledger-service/Dockerfile
     ports:
-      - "3003:3003"
+      - "${TEST_LEDGER_SERVICE_PORT:-3003}:3003"
     environment:
       LEDGER_SERVICE_PORT: 3003
       KAFKA_BROKERS: kafka:29092
@@ -190,7 +190,7 @@ services:
       context: .
       dockerfile: ./services/fraud-service/Dockerfile
     ports:
-      - "3004:3004"
+      - "${TEST_FRAUD_SERVICE_PORT:-3004}:3004"
     environment:
       FRAUD_SERVICE_PORT: 3004
       ACCOUNT_SERVICE_URL: http://account-service:3001
@@ -215,7 +215,7 @@ services:
       context: .
       dockerfile: ./services/notification-service/Dockerfile
     ports:
-      - "3005:3005"
+      - "${TEST_NOTIFICATION_SERVICE_PORT:-3005}:3005"
     environment:
       NOTIFICATION_SERVICE_PORT: 3005
       ACCOUNT_SERVICE_URL: http://account-service:3001
@@ -236,7 +236,7 @@ services:
       context: .
       dockerfile: ./services/api-gateway/Dockerfile
     ports:
-      - "8080:8080"
+      - "${TEST_API_GATEWAY_PORT:-8080}:8080"
     environment:
       PORT: 8080
       NODE_ENV: test
@@ -270,37 +270,37 @@ services:
       - ./:/app
       - test_node_modules:/app/node_modules
     environment:
-      ACCOUNT_SERVICE_URL: http://localhost:3001
-      TRANSFER_SERVICE_URL: http://localhost:3002
-      LEDGER_SERVICE_URL: http://localhost:3003
-      FRAUD_SERVICE_URL: http://localhost:3004
-      NOTIFICATION_SERVICE_URL: http://localhost:3005
+      ACCOUNT_SERVICE_URL: http://localhost:${TEST_ACCOUNT_SERVICE_PORT:-3001}
+      TRANSFER_SERVICE_URL: http://localhost:${TEST_TRANSFER_SERVICE_PORT:-3002}
+      LEDGER_SERVICE_URL: http://localhost:${TEST_LEDGER_SERVICE_PORT:-3003}
+      FRAUD_SERVICE_URL: http://localhost:${TEST_FRAUD_SERVICE_PORT:-3004}
+      NOTIFICATION_SERVICE_URL: http://localhost:${TEST_NOTIFICATION_SERVICE_PORT:-3005}
       ACCOUNTS_DB_HOST: 127.0.0.1
-      ACCOUNTS_DB_HOST_PORT: 5433
+      ACCOUNTS_DB_HOST_PORT: ${TEST_ACCOUNTS_DB_PORT:-5433}
       ACCOUNTS_DB_NAME: accounts_db
       ACCOUNTS_DB_USER: accounts_user
       ACCOUNTS_DB_PASSWORD: accounts_pass
       TRANSFERS_DB_HOST: 127.0.0.1
-      TRANSFERS_DB_HOST_PORT: 5434
+      TRANSFERS_DB_HOST_PORT: ${TEST_TRANSFERS_DB_PORT:-5434}
       TRANSFERS_DB_NAME: transfers_db
       TRANSFERS_DB_USER: transfers_user
       TRANSFERS_DB_PASSWORD: transfers_pass
-      KAFKA_BROKERS: localhost:9092
-      MONGODB_URI: mongodb://localhost:27017
-      MONGODB_URL: mongodb://localhost:27017
+      KAFKA_BROKERS: localhost:${TEST_KAFKA_PORT:-9092}
+      MONGODB_URI: mongodb://localhost:${TEST_MONGODB_PORT:-27017}
+      MONGODB_URL: mongodb://localhost:${TEST_MONGODB_PORT:-27017}
       MONGODB_DB_NAME: banking_events
-      REDIS_URL: redis://localhost:6379
+      REDIS_URL: redis://localhost:${TEST_REDIS_PORT:-6379}
       JWT_ACCESS_SECRET: test-access-secret
       JWT_REFRESH_SECRET: test-refresh-secret
     command: >
       sh -c "npm ci &&
       node scripts/wait-for-http.mjs
-      http://localhost:3001/health
-      http://localhost:3002/health
-      http://localhost:3003/health
-      http://localhost:3004/health
-      http://localhost:3005/health
-      http://localhost:8080/health &&
+      http://localhost:${TEST_ACCOUNT_SERVICE_PORT:-3001}/health
+      http://localhost:${TEST_TRANSFER_SERVICE_PORT:-3002}/health
+      http://localhost:${TEST_LEDGER_SERVICE_PORT:-3003}/health
+      http://localhost:${TEST_FRAUD_SERVICE_PORT:-3004}/health
+      http://localhost:${TEST_NOTIFICATION_SERVICE_PORT:-3005}/health
+      http://localhost:${TEST_API_GATEWAY_PORT:-8080}/health &&
       npm test &&
       npm run test:containers"
 

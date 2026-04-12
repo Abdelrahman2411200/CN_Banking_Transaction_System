@@ -259,7 +259,22 @@ The CD workflow applies all rendered manifests, checks every service rollout, an
 
 ## Troubleshooting
 
-- Port conflict: free ports `3001-3005`, `9092`, `27017`, `5433`, and `5434`.
+- Port conflict: free ports `3001-3005`, `6379`, `8080`, `9092`, `27017`, `5433`, and `5434`, or run the test compose stack with overrides:
+
+```powershell
+$env:TEST_REDIS_PORT = "6380"
+$env:TEST_API_GATEWAY_PORT = "18080"
+$env:TEST_KAFKA_PORT = "19092"
+$env:TEST_ACCOUNT_SERVICE_PORT = "13001"
+$env:TEST_TRANSFER_SERVICE_PORT = "13002"
+$env:TEST_LEDGER_SERVICE_PORT = "13003"
+$env:TEST_FRAUD_SERVICE_PORT = "13004"
+$env:TEST_NOTIFICATION_SERVICE_PORT = "13005"
+$env:TEST_ACCOUNTS_DB_PORT = "15433"
+$env:TEST_TRANSFERS_DB_PORT = "15434"
+$env:TEST_MONGODB_PORT = "27018"
+docker compose -f docker-compose.test.yml up --build --force-recreate --abort-on-container-exit --exit-code-from test-runner
+```
 - Kafka topic startup issue: run `make down`, then `make up` to recreate Kafka and rerun `kafka-init`.
 - Integration test connection failures: confirm `docker compose ps` shows the six services plus Kafka and MongoDB healthy.
 - Stale data: run `make down` to remove volumes, then restart with `make up`.
