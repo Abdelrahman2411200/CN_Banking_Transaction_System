@@ -1,27 +1,37 @@
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { LoginPage, RegisterPage, type AuthClient } from "../auth/AuthPages";
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
-import { LoginPage, NotFoundPage, RegisterPage, RoutePage } from "./RoutePages";
+import { refreshAuthSession } from "../../lib/api/auth";
+import { NotFoundPage, RoutePage } from "./RoutePages";
 import { PortalLayout } from "./PortalLayout";
-import { ProtectedRoute, type SessionReader } from "./ProtectedRoute";
+import { ProtectedRoute, type SessionReader, type SessionRefresher } from "./ProtectedRoute";
 import { adminOperatorRoutes, customerOperatorRoutes } from "./routeConfig";
 
 export interface PortalRoutesProps {
+  authClient?: AuthClient;
   getSession?: SessionReader;
+  logoutSession?: () => Promise<unknown>;
+  refreshSession?: SessionRefresher;
 }
 
-export const PortalRoutes = ({ getSession }: PortalRoutesProps): ReactElement => (
+export const PortalRoutes = ({
+  authClient,
+  getSession,
+  logoutSession,
+  refreshSession = refreshAuthSession
+}: PortalRoutesProps): ReactElement => (
   <Routes>
-    <Route element={<LoginPage />} path="/login" />
-    <Route element={<RegisterPage />} path="/register" />
+    <Route element={<LoginPage authClient={authClient} />} path="/login" />
+    <Route element={<RegisterPage authClient={authClient} />} path="/register" />
     <Route element={<DesignSystemGallery />} path="/design-system" />
     <Route element={<Navigate replace to="/dashboard" />} path="/" />
-    <Route element={<ProtectedRoute getSession={getSession} />}>
-      <Route element={<PortalLayout getSession={getSession} />}>
+    <Route element={<ProtectedRoute getSession={getSession} refreshSession={refreshSession} />}>
+      <Route element={<PortalLayout getSession={getSession} logoutSession={logoutSession} />}>
         {customerOperatorRoutes.map((route) => (
           <Route element={<RoutePage route={route} />} key={route.path} path={route.path} />
         ))}
-        <Route element={<ProtectedRoute allowedRoles={["operator", "admin"]} getSession={getSession} />}>
+        <Route element={<ProtectedRoute allowedRoles={["operator", "admin"]} getSession={getSession} refreshSession={refreshSession} />}>
           {adminOperatorRoutes.map((route) => (
             <Route element={<RoutePage route={route} />} key={route.path} path={route.path} />
           ))}

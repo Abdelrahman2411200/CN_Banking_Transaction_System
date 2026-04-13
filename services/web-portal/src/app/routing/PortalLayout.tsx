@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppShell, type NavItem } from "../../components/layout";
-import { StatusChip } from "../../components/primitives";
+import { Button, StatusChip } from "../../components/primitives";
+import { logoutUser } from "../../lib/api/auth";
 import type { UserRole } from "../auth/session";
 import { readStoredSession } from "../auth/session";
 import type { SessionReader } from "./ProtectedRoute";
@@ -14,10 +15,15 @@ const isActiveRoute = (pathname: string, href: string): boolean =>
 
 export interface PortalLayoutProps {
   getSession?: SessionReader;
+  logoutSession?: () => Promise<unknown>;
 }
 
-export const PortalLayout = ({ getSession = readStoredSession }: PortalLayoutProps): ReactElement => {
+export const PortalLayout = ({
+  getSession = readStoredSession,
+  logoutSession = logoutUser
+}: PortalLayoutProps): ReactElement => {
   const location = useLocation();
+  const navigate = useNavigate();
   const session = getSession();
   const role = session?.role ?? "customer";
   const roleCanViewAdminRoutes = adminOperatorRoles.includes(role);
@@ -34,8 +40,25 @@ export const PortalLayout = ({ getSession = readStoredSession }: PortalLayoutPro
       label: route.label
     }));
 
+  const handleLogout = async (): Promise<void> => {
+    await logoutSession();
+    void navigate("/login", {
+      replace: true,
+      state: { authNotice: "Signed out. Re-authenticate to access the ledger." }
+    });
+  };
+
   return (
-    <AppShell actions={<StatusChip status="info">{role}</StatusChip>} navItems={navItems} title="Banking Ops">
+    <AppShell
+      actions={
+        <>
+          <StatusChip status="info">{role}</StatusChip>
+          <Button onClick={() => void handleLogout()} variant="secondary">Sign out</Button>
+        </>
+      }
+      navItems={navItems}
+      title="Banking Ops"
+    >
       <Outlet />
     </AppShell>
   );

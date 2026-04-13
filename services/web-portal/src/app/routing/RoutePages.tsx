@@ -33,41 +33,6 @@ export const RoutePage = ({ route }: RoutePageProps): ReactElement => (
   </div>
 );
 
-export const LoginPage = (): ReactElement => (
-  <main className="grid min-h-screen place-items-center bg-surface p-6 text-on-surface">
-    <section className="grid w-full max-w-md gap-5 rounded-lg bg-surface-container-low p-5">
-      <div className="rounded-lg bg-surface-container-lowest p-5">
-        <StatusChip status="info">public</StatusChip>
-        <h1 className="mt-3 text-headline-sm text-on-surface">Operator access</h1>
-        <p className="mt-2 text-body-md text-on-surface-variant">
-          Authentication flow is reserved for Phase 4. The route is ready for the gateway-backed form.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <ActionLink to="/register" variant="secondary">Register</ActionLink>
-          <ActionLink to="/dashboard">Continue</ActionLink>
-        </div>
-      </div>
-    </section>
-  </main>
-);
-
-export const RegisterPage = (): ReactElement => (
-  <main className="grid min-h-screen place-items-center bg-surface p-6 text-on-surface">
-    <section className="grid w-full max-w-md gap-5 rounded-lg bg-surface-container-low p-5">
-      <div className="rounded-lg bg-surface-container-lowest p-5">
-        <StatusChip status="info">public</StatusChip>
-        <h1 className="mt-3 text-headline-sm text-on-surface">Create portal access</h1>
-        <p className="mt-2 text-body-md text-on-surface-variant">
-          Registration wiring lands with the auth session phase and uses the gateway auth boundary.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <ActionLink to="/login" variant="secondary">Sign in</ActionLink>
-        </div>
-      </div>
-    </section>
-  </main>
-);
-
 export interface ForbiddenPageProps {
   attemptedPath?: string;
 }
