@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Production Environment</p>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_balance">account_balance</span>
+                Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="swap_horiz">swap_horiz</span>
+                Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu_book">menu_book</span>
+                Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="gpp_maybe">gpp_maybe</span>
+                Fraud
+            </a>
+<!-- ACTIVE NAV: Notifications -->
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+                Notifications
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="health_and_safety">health_and_safety</span>
+                Platform Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+                Observability
+            </a>
+</nav>
+<div class="mt-auto p-3 bg-surface-container-low rounded-xl flex items-center gap-3">
+<div class="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-sm" data-icon="person">person</span>
+</div>
+<div>
+<p class="text-[11px] font-bold text-on-surface">System Operator</p>
+<p class="text-[9px] text-on-surface-variant">Lvl 4 Admin</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="ml-64 min-h-screen">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<div class="h-4 w-px bg-outline-variant/30"></div>
+<div class="flex gap-2 text-[11px] font-medium text-on-surface-variant uppercase tracking-widest">
+<span>Admin</span>
+<span>/</span>
+<span class="text-on-surface">Notifications</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-slate-900 cursor-pointer transition-colors" data-icon="monitor_heart">monitor_heart</span>
+<span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-slate-900 cursor-pointer transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-slate-900 cursor-pointer transition-colors" data-icon="dark_mode">dark_mode</span><span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-slate-900 cursor-pointer transition-colors" data-icon="settings">settings</span>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Service Overview Bar -->
+<div class="grid grid-cols-12 gap-6 items-end">
+<div class="col-span-8">
+<h2 class="text-3xl font-black tracking-tight text-on-surface mb-2">Notification Hub</h2>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/10 text-tertiary border border-tertiary/20">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span class="text-[10px] font-black uppercase tracking-wider">Event-Consumer Mode</span>
+</div>
+<span class="text-[11px] text-on-surface-variant font-medium">Node: notification-engine-us-east-1a</span>
+</div>
+</div>
+<div class="col-span-4 flex justify-end gap-3">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+                        FORCE RESYNC
+                    </button>
+</div>
+</div>
+<!-- Channels & Topics (Bento Grid) -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Email Service Card -->
+<div class="col-span-3 bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary-container rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="mail">mail</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">Operational</span>
+</div>
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-tighter">Email Service</p>
+<p class="text-2xl font-black text-on-surface">99.98%</p>
+<div class="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[99.98%]"></div>
+</div>
+</div>
+<!-- SMS Service Card -->
+<div class="col-span-3 bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-secondary" data-icon="sms">sms</span>
+</div>
+<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full uppercase">High Latency</span>
+</div>
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-tighter">SMS Service</p>
+<p class="text-2xl font-black text-on-surface">94.12%</p>
+<div class="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full w-[94%]"></div>
+</div>
+</div>
+<!-- Topics List Card -->
+<div class="col-span-6 bg-surface-container p-6 rounded-xl relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-4">Active Subscribed Topics</p>
+<div class="flex flex-wrap gap-2">
+<div class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/20 px-3 py-1.5 rounded-lg">
+<span class="h-2 w-2 rounded-full bg-primary"></span>
+<code class="text-[12px] font-medium text-on-surface">bank.transfer.completed</code>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/20 px-3 py-1.5 rounded-lg">
+<span class="h-2 w-2 rounded-full bg-error"></span>
+<code class="text-[12px] font-medium text-on-surface">bank.transfer.failed</code>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/20 px-3 py-1.5 rounded-lg">
+<span class="h-2 w-2 rounded-full bg-amber-500"></span>
+<code class="text-[12px] font-medium text-on-surface">bank.fraud.alert</code>
+</div>
+</div>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-[0.03]">
+<span class="material-symbols-outlined text-[160px]" data-icon="hub">hub</span>
+</div>
+</div>
+</div>
+<!-- Notification Timeline -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden">
+<div class="px-8 py-5 border-b border-surface-container flex justify-between items-center">
+<h3 class="text-sm font-black uppercase tracking-tighter text-on-surface">Live Notification Timeline</h3>
+<div class="flex gap-4">
+<div class="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant">
+<span class="h-2 w-2 rounded-full bg-emerald-500"></span> Sent
+                        </div>
+<div class="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant">
+<span class="h-2 w-2 rounded-full bg-error"></span> Failed
+                        </div>
+<div class="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant">
+<span class="h-2 w-2 rounded-full bg-amber-500"></span> Retrying
+                        </div>
+</div>
+</div>
+<div class="p-8">
+<div class="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-surface-container">
+<!-- Timeline Entry 1 -->
+<div class="relative flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<div class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<p class="text-[13px] font-bold text-on-surface">Transfer Successful Notification</p>
+<span class="text-[10px] font-black uppercase bg-surface-container px-2 py-0.5 rounded text-on-surface-variant">EMAIL</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Recipient: <span class="text-on-surface">a.vanderbilt@fin-ops.int</span> • ID: 8902-TRX-44</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[11px] font-bold text-on-surface">09:42:12 AM</p>
+<p class="text-[10px] text-emerald-600 font-medium">Delivered (2.1s latency)</p>
+</div>
+</div>
+<!-- Timeline Entry 2 -->
+<div class="relative flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<div class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-amber-600 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]" data-icon="autorenew">autorenew</span>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<p class="text-[13px] font-bold text-on-surface">Low Balance Alert</p>
+<span class="text-[10px] font-black uppercase bg-surface-container px-2 py-0.5 rounded text-on-surface-variant">SMS</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Recipient: <span class="text-on-surface">+1 (555) 012-9982</span> • Attempt: 2/3</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[11px] font-bold text-on-surface">09:41:05 AM</p>
+<p class="text-[10px] text-amber-600 font-medium italic">Retrying: Network Timeout</p>
+</div>
+</div>
+<!-- Timeline Entry 3 -->
+<div class="relative flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<div class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-error-container text-error border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]" data-icon="error_outline" style="font-variation-settings: 'FILL' 1;">error_outline</span>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<p class="text-[13px] font-bold text-on-surface">FRAUD ALERT CRITICAL</p>
+<span class="text-[10px] font-black uppercase bg-error-container/20 px-2 py-0.5 rounded text-error">PUSH &amp; SMS</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Recipient: <span class="text-on-surface">Multiple Gateways</span> • Error: AUTH_FAILURE</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[11px] font-bold text-on-surface">09:38:55 AM</p>
+<p class="text-[10px] text-error font-black">FAILED - HARD DROP</p>
+</div>
+</div>
+<!-- Timeline Entry 4 -->
+<div class="relative flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<div class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<p class="text-[13px] font-bold text-on-surface">Password Reset Confirmation</p>
+<span class="text-[10px] font-black uppercase bg-surface-container px-2 py-0.5 rounded text-on-surface-variant">EMAIL</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Recipient: <span class="text-on-surface">j.doe@global-node.com</span> • ID: 7721-AUTH-11</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[11px] font-bold text-on-surface">09:35:10 AM</p>
+<p class="text-[10px] text-emerald-600 font-medium">Delivered (0.8s latency)</p>
+</div>
+</div>
+</div>
+<!-- Load More Action -->
+<div class="mt-12 flex justify-center">
+<button class="px-6 py-2 rounded-full border border-outline-variant/30 text-[11px] font-black uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-colors">
+                            LOAD OLDER EVENTS
+                        </button>
+</div>
+</div>
+</div>
+<!-- Activity Logs Section (Asymmetric Side Info) -->
+<div class="grid grid-cols-12 gap-6">
+<div class="col-span-12">
+<div class="bg-inverse-surface p-6 rounded-xl text-on-tertiary">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-tertiary" data-icon="terminal">terminal</span>
+<h4 class="text-xs font-black uppercase tracking-widest">System Log Tail</h4>
+</div>
+<div class="space-y-2 font-mono text-[11px] opacity-80">
+<p><span class="text-emerald-400">[09:42:44]</span> INFO: Received 'bank.transfer.completed' from Queue.worker_01</p>
+<p><span class="text-emerald-400">[09:42:45]</span> INFO: Mapping recipient data for TRX-44 via Postgres.read_replica</p>
+<p><span class="text-tertiary">[09:42:46]</span> TRACE: Dispatching SendGrid payload to api.sendgrid.com/v3/mail/send</p>
+<p><span class="text-amber-400">[09:42:47]</span> WARN: SMTP connection handshake took &gt; 1000ms</p>
+<p><span class="text-emerald-400">[09:42:48]</span> SUCCESS: Payload accepted by provider. Status: 202 Accepted</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

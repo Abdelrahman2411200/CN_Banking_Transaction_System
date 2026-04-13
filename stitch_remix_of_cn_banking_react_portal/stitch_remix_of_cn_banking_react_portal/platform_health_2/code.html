@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Platform Health</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar (Shared Component) -->
+<aside class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 py-6 px-4 gap-2 border-r border-slate-200/50 dark:border-slate-800/50 z-50">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Production Environment</p>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">account_balance</span> Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">swap_horiz</span> Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">menu_book</span> Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">gpp_maybe</span> Fraud
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">notifications</span> Notifications
+            </a>
+<!-- Active State: Platform Health -->
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">health_and_safety</span> Platform Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg">analytics</span> Observability
+            </a>
+</nav>
+<div class="mt-auto p-4 bg-surface-container-high rounded-xl flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary text-xs font-bold">SO</div>
+<div class="overflow-hidden">
+<p class="text-[11px] font-bold truncate">System Operator</p>
+<p class="text-[9px] text-on-surface-variant uppercase tracking-tighter">Level 4 Auth</p>
+</div>
+</div>
+</aside>
+<main class="md:ml-64 min-h-screen">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<nav class="hidden sm:flex items-center text-sm gap-2 text-slate-400">
+<span>Infrastructure</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-semibold">Cluster Health</span>
+</nav>
+</div>
+<div class="flex items-center gap-3"><button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<div class="hidden lg:flex items-center bg-surface-container rounded px-3 py-1.5 gap-2 mr-4">
+<span class="w-2 h-2 rounded-full bg-emerald-500 status-pulse"></span>
+<span class="text-[11px] font-bold text-on-surface tracking-tight uppercase">Global Traffic: 14.2k req/s</span>
+</div>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined">monitor_heart</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Hero Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-2">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">Core Uptime</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-black tracking-tighter">99.998%</span>
+<span class="text-emerald-600 text-xs font-bold mb-1">+0.001%</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-2">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">Mean Latency</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-black tracking-tighter">42ms</span>
+<span class="text-emerald-600 text-xs font-bold mb-1">-2ms</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-2">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">Active Nodes</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-black tracking-tighter">124</span>
+<span class="text-on-surface-variant text-xs font-bold mb-1">EKS-US-EAST-1</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-2 border-l-4 border-primary">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">System Load</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-black tracking-tighter">14%</span>
+<div class="w-full bg-surface-container h-1.5 rounded-full mb-3 overflow-hidden">
+<div class="bg-primary w-[14%] h-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Dashboard Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Gateway Health Summary (LHS Column) -->
+<section class="lg:col-span-8 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-sm font-bold tracking-tight">Gateway Health Summary</h2>
+<span class="text-label-sm text-on-surface-variant">Updated: Just Now</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+<!-- API Gateway Card -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">router</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">Healthy</span>
+</div>
+<h3 class="text-sm font-bold">api-gateway</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Ingress Controller v2.4.1</p>
+<div class="mt-4 pt-4 border-t border-surface-container flex justify-between text-[10px] font-medium text-on-surface-variant">
+<span>CPU: 0.45</span>
+<span>MEM: 1.2GB</span>
+<span>REQ: 4.1k</span>
+</div>
+</div>
+<!-- Account Service Card -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">Healthy</span>
+</div>
+<h3 class="text-sm font-bold">account-service</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Identity Provider</p>
+<div class="mt-4 pt-4 border-t border-surface-container flex justify-between text-[10px] font-medium text-on-surface-variant">
+<span>CPU: 0.12</span>
+<span>MEM: 512MB</span>
+<span>REQ: 0.8k</span>
+</div>
+</div>
+<!-- Transfer Service Card (Degraded) -->
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-amber-200/50 shadow-sm transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-amber-100 p-2 rounded-lg">
+<span class="material-symbols-outlined text-amber-700">sync_alt</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase">Degraded</span>
+</div>
+<h3 class="text-sm font-bold">transfer-service</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">ACH/Swift Logic</p>
+<div class="mt-4 pt-4 border-t border-surface-container space-y-2">
+<div class="flex justify-between text-[10px] font-medium text-on-surface-variant">
+<span>Latency Spike</span>
+<span class="text-amber-700">842ms</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full">
+<div class="bg-amber-500 w-[85%] h-full"></div>
+</div>
+</div>
+</div>
+<!-- Ledger Service Card -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">database</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">Healthy</span>
+</div>
+<h3 class="text-sm font-bold">ledger-service</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Double Entry DB</p>
+<div class="mt-4 pt-4 border-t border-surface-container flex justify-between text-[10px] font-medium text-on-surface-variant">
+<span>CPU: 0.98</span>
+<span>MEM: 4.1GB</span>
+<span>IO: High</span>
+</div>
+</div>
+<!-- Fraud Service Card (Rolling Out) -->
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-primary/20 transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">security</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-container text-primary text-[10px] font-black uppercase">Rolling Out</span>
+</div>
+<h3 class="text-sm font-bold">fraud-service</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">AI Risk Engine v3.0</p>
+<div class="mt-4 pt-4 border-t border-surface-container">
+<div class="flex justify-between text-[10px] font-bold text-primary mb-1">
+<span>v3.0.1 Stable</span>
+<span>65%</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden">
+<div class="bg-primary w-[65%] h-full"></div>
+</div>
+</div>
+</div>
+<!-- Notification Service Card -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:bg-surface-variant/20">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">mail</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">Healthy</span>
+</div>
+<h3 class="text-sm font-bold">notification-service</h3>
+<p class="text-[11px] text-on-surface-variant mt-1">Push &amp; Email Relay</p>
+<div class="mt-4 pt-4 border-t border-surface-container flex justify-between text-[10px] font-medium text-on-surface-variant">
+<span>Queue: 12</span>
+<span>MEM: 256MB</span>
+<span>Sent: 42k</span>
+</div>
+</div>
+</div>
+<!-- Kubernetes/EKS Status -->
+<div class="space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">grid_view</span>
+<h2 class="text-headline-sm font-bold tracking-tight">Kubernetes / EKS Status</h2>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-6 rounded-xl flex items-center justify-between">
+<div>
+<p class="text-label-sm text-on-surface-variant font-bold uppercase">Pod Replicas</p>
+<p class="text-2xl font-black mt-1">842 / 850</p>
+</div>
+<div class="w-16 h-16 relative">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="32" cy="32" fill="none" r="28" stroke="currentColor" stroke-width="6"></circle>
+<circle class="text-primary" cx="32" cy="32" fill="none" r="28" stroke="currentColor" stroke-dasharray="175" stroke-dashoffset="15" stroke-width="6"></circle>
+</svg>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl space-y-4">
+<div class="flex justify-between items-center">
+<p class="text-label-sm text-on-surface-variant font-bold uppercase">Cluster Readiness</p>
+<span class="material-symbols-outlined text-emerald-500">check_circle</span>
+</div>
+<div class="flex gap-1 h-3">
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 bg-emerald-400 rounded-sm"></div>
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 bg-emerald-300 rounded-sm"></div>
+<div class="flex-1 bg-emerald-500 rounded-sm"></div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl flex items-center gap-4">
+<div class="p-3 bg-surface-container-highest rounded-lg">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant font-bold uppercase">HPA Status</p>
+<p class="text-sm font-bold">Autoscaling Active (Low Load)</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl flex items-center gap-4">
+<div class="p-3 bg-surface-container-highest rounded-lg">
+<span class="material-symbols-outlined text-primary">history</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant font-bold uppercase">Rollback Availability</p>
+<p class="text-sm font-bold text-emerald-600">3 Previous Versions Ready</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CI/CD Pipeline Panel (RHS Column) -->
+<aside class="lg:col-span-4 space-y-6">
+<div class="bg-surface-container-highest p-6 rounded-2xl shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-title-sm font-black uppercase tracking-tight">CI/CD Pipeline</h2>
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</div>
+<div class="flex items-center gap-4 mb-8 bg-surface-container-lowest p-4 rounded-xl">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">conversion_path</span>
+</div>
+<div>
+<p class="text-xs font-black">PROD-ROLLOUT-AF812</p>
+<p class="text-[10px] text-on-surface-variant">Triggered by: @jenkins-bot</p>
+</div>
+</div>
+<div class="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1px] before:bg-outline-variant/30">
+<!-- Checklist Item: Success -->
+<div class="flex items-start gap-4 relative">
+<div class="z-10 bg-emerald-500 w-6 h-6 rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-xs font-bold">Lint &amp; Formatting</p>
+<span class="text-[10px] font-medium text-emerald-600 uppercase">Success</span>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-0.5">Pre-check completed in 1.4s</p>
+</div>
+</div>
+<!-- Checklist Item: Success -->
+<div class="flex items-start gap-4 relative">
+<div class="z-10 bg-emerald-500 w-6 h-6 rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-xs font-bold">Typecheck</p>
+<span class="text-[10px] font-medium text-emerald-600 uppercase">Success</span>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-0.5">Static analysis verified</p>
+</div>
+</div>
+<!-- Checklist Item: Success -->
+<div class="flex items-start gap-4 relative">
+<div class="z-10 bg-emerald-500 w-6 h-6 rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-xs font-bold">Unit &amp; Integration Tests</p>
+<span class="text-[10px] font-medium text-emerald-600 uppercase">Success</span>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-0.5">4,812 tests passed (100%)</p>
+</div>
+</div>
+<!-- Checklist Item: Running -->
+<div class="flex items-start gap-4 relative">
+<div class="z-10 bg-primary w-6 h-6 rounded-full flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-sm status-pulse">refresh</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-xs font-bold">Docker Build &amp; Push</p>
+<span class="text-[10px] font-medium text-primary uppercase">Running</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full mt-2">
+<div class="bg-primary w-3/4 h-full rounded-full"></div>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-1">Pushing to ECR: layer 4/12</p>
+</div>
+</div>
+<!-- Checklist Item: Pending -->
+<div class="flex items-start gap-4 relative opacity-40">
+<div class="z-10 bg-surface-container-low w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">lock</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Security Scan (Prisma)</p>
+<p class="text-[10px] text-on-surface-variant mt-0.5">Waiting for image...</p>
+</div>
+</div>
+<!-- Checklist Item: Pending -->
+<div class="flex items-start gap-4 relative opacity-40">
+<div class="z-10 bg-surface-container-low w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">cloud_upload</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Terraform Apply</p>
+<p class="text-[10px] text-on-surface-variant mt-0.5">Infrastructure as Code</p>
+</div>
+</div>
+<!-- Checklist Item: Pending -->
+<div class="flex items-start gap-4 relative opacity-40">
+<div class="z-10 bg-surface-container-low w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">rocket_launch</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Canary Rollout</p>
+<p class="text-[10px] text-on-surface-variant mt-0.5">Final Production Sync</p>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant/20">
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">pause</span>
+                                PAUSE PIPELINE
+                            </button>
+<p class="text-center text-[10px] text-on-surface-variant mt-3">Emergency manual override available</p>
+</div>
+</div>
+<!-- System Insights Card -->
+<div class="bg-surface-container-low p-6 rounded-2xl border border-primary/10">
+<h3 class="text-xs font-black uppercase tracking-widest text-primary mb-4">Architecture Insight</h3>
+<div class="flex gap-4">
+<img class="w-20 h-20 rounded-lg object-cover" data-alt="abstract node and line visualization representing a complex microservices architecture network with glowing connection points on a dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAT-JbEvcOv1HZUIC9_EwO4VYzLMJtnjNAS15nO4KV8UdES8fTbfeclJTRCtrCsExIgefwVAunuHXZyPz3of95F8XyBkPSOH08JAkJIvr8ax4xoCteEh4a4KouB21GmZmmPRDH-g818cb5uRdxsBQCLFedx0qpkRDIJKSgelMNrVR-4HQA0H8kEoBoQVzA93-0ERmgdlGkr_VjXBHiG-doihRPoHAU9-Y6We316BcD5PXmsrNAe0sAuwq-KqxK3remcCnNUHuEFHM"/>
+<div>
+<p class="text-[11px] leading-relaxed">System has detected high load on <span class="font-bold">ledger-service</span>. Recommendation: Increase replica count in <span class="font-bold">us-east-1a</span> availability zone.</p>
+<button class="mt-2 text-primary font-bold text-[10px] uppercase tracking-tighter flex items-center gap-1">
+                                    Apply Tuning <span class="material-symbols-outlined text-xs">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom Navigation (Shared Component Placeholder) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex items-center justify-around z-50">
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold">Ops</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
+<span class="text-[10px] font-bold">Health</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">conversion_path</span>
+<span class="text-[10px] font-bold">CI/CD</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">Me</span>
+</button>
+</nav>
+</body></html>

@@ -1,0 +1,31 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { Dialog } from "./Dialog";
+import { Toast } from "./Toast";
+
+describe("overlay primitives", () => {
+  it("renders toast status semantics", () => {
+    render(<Toast message="Retry in a few minutes" status="error" title="Gateway unavailable" />);
+
+    expect(screen.getByText("Gateway unavailable")).toBeInTheDocument();
+    expect(screen.getByText("error")).toHaveAttribute("data-status", "error");
+  });
+
+  it("renders dialog with accessible title and close action", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(
+      <Dialog onClose={onClose} open title="Confirm transfer">
+        Review before submitting.
+      </Dialog>
+    );
+
+    expect(screen.getByRole("dialog", { name: /confirm transfer/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /close dialog/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

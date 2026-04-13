@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Account Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#f6f9ff",
+                        "on-background": "#2a3439",
+                        "on-tertiary-container": "#002d47",
+                        "primary-fixed": "#dae2fd",
+                        "on-primary-container": "#4a5167",
+                        "on-primary": "#f7f7ff",
+                        "secondary-container": "#d5e3fc",
+                        "inverse-on-surface": "#9a9d9f",
+                        "on-secondary": "#f8f8ff",
+                        "tertiary-container": "#51b0f6",
+                        "on-tertiary-fixed-variant": "#003655",
+                        "surface-tint": "#565e74",
+                        "error-container": "#fe8983",
+                        "error": "#9f403d",
+                        "surface-container-high": "#e1e9ee",
+                        "tertiary-fixed-dim": "#40a2e7",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#526074",
+                        "background": "#f7f9fb",
+                        "on-surface": "#2a3439",
+                        "outline": "#717c82",
+                        "tertiary-dim": "#005886",
+                        "surface-container": "#e8eff3",
+                        "on-primary-fixed": "#373f54",
+                        "surface-container-low": "#f0f4f7",
+                        "on-tertiary-fixed": "#000d19",
+                        "primary-dim": "#4a5268",
+                        "tertiary": "#006499",
+                        "secondary-dim": "#465468",
+                        "tertiary-fixed": "#51b0f6",
+                        "on-surface-variant": "#566166",
+                        "on-primary-fixed-variant": "#535b71",
+                        "outline-variant": "#a9b4b9",
+                        "primary-fixed-dim": "#ccd4ee",
+                        "primary-container": "#dae2fd",
+                        "error-dim": "#4e0309",
+                        "secondary-fixed": "#d5e3fc",
+                        "on-secondary-fixed-variant": "#4e5c71",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#324053",
+                        "on-secondary-container": "#455367",
+                        "inverse-surface": "#0b0f10",
+                        "primary": "#565e74",
+                        "secondary-fixed-dim": "#c7d5ed",
+                        "inverse-primary": "#dae2fd",
+                        "surface-container-highest": "#d9e4ea",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#fff7f6",
+                        "surface-dim": "#cfdce3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .tonal-shift {
+            background-color: #f0f4f7;
+        }
+        .dark .tonal-shift {
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+<body class="bg-surface dark:bg-slate-950 text-on-surface dark:text-slate-300 selection:bg-primary-container">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-900 flex flex-col py-6 px-4 gap-2 z-50 border-r border-slate-200/10">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Production Environment</p>
+</div>
+<nav class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-400 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span> Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="swap_horiz">swap_horiz</span> Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span> Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="gpp_maybe">gpp_maybe</span> Fraud
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span> Notifications
+            </a>
+<div class="mt-auto pt-6 border-t border-slate-200/50 dark:border-slate-800">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="health_and_safety">health_and_safety</span> Platform Health
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 ease-in-out hover:bg-slate-200/30 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span> Observability
+                </a>
+</div>
+</nav>
+<div class="mt-4 px-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+<img alt="System Operator" class="w-full h-full object-cover" data-alt="professional portrait of a man in a modern office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDjxX8kiy5CCW6O-G6KiYixoe-WI4vJZNtDGDuQMWXtmeAhZ8agy87bCeQZ-XhfMOkCKUKM6wti7zBhM4PsatQwKJe902-jXmD0iVErTS3wkEnyzc3AcokLpvCamwMNJQn27FddmDBhy3Q61O1I6PH0ySpX40Ktmx6O3gkqI8pXnZpNYY1WvgYaysmBLZVCm5Y8kdOhctvFtv8Ez55omG1FyVJa4ACwfJEq2rafAvtipGpdRwGIhdEuVn5mmmmzIiR-Q9PjOvq3Yg"/>
+</div>
+<div class="flex flex-col">
+<span class="text-[12px] font-bold text-slate-900 dark:text-slate-200 leading-none">Admin Op-4</span>
+<span class="text-[10px] text-slate-500">System Operator</span>
+</div>
+</div>
+</aside>
+<main class="ml-64 min-h-screen bg-surface dark:bg-slate-950">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<nav class="flex items-center gap-2 text-sm font-sans tracking-tight text-slate-500">
+<span>Admin</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-slate-900 dark:text-slate-300 font-semibold">Account Registry</span>
+</nav>
+</div>
+<div class="flex items-center gap-4"><button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg" title="Toggle Theme">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<div class="flex items-end justify-between">
+<div>
+<h2 class="text-3xl font-black text-on-surface dark:text-white tracking-tight">Account Ecosystem</h2>
+<p class="text-on-surface-variant dark:text-slate-400 body-md mt-1">Direct orchestration of sovereign banking identities.</p>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-lowest dark:bg-slate-900 border border-outline-variant/20 dark:border-slate-800 px-4 py-2 text-sm font-semibold rounded-lg text-on-surface dark:text-slate-300 flex items-center gap-2 hover:bg-surface-container-low dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">download</span> Export Ledger
+                    </button>
+<button class="bg-primary dark:bg-slate-800 text-on-primary dark:text-white border dark:border-slate-700 px-6 py-2 text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity">
+                        Create Account
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Create Account Form Section -->
+<section class="col-span-12 lg:col-span-4 space-y-6">
+<div class="bg-surface-container-lowest dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-outline-variant/10 dark:border-slate-800">
+<h3 class="text-lg font-bold text-on-surface dark:text-slate-200 mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-slate-400">person_add</span>
+                            Identity Onboarding
+                        </h3>
+<form class="space-y-5">
+<div class="space-y-1.5">
+<label class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant dark:text-slate-500 px-1">Full Legal Name</label>
+<input class="w-full bg-surface-container-low dark:bg-slate-950 border-none focus:ring-2 focus:ring-primary dark:focus:ring-slate-700 rounded-lg text-sm px-4 py-3 placeholder:text-outline/50 dark:placeholder:text-slate-600 text-on-surface dark:text-slate-300" placeholder="e.g. Alexander Sterling" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant dark:text-slate-500 px-1">Email Address</label>
+<input class="w-full bg-surface-container-low dark:bg-slate-950 border border-error/20 dark:border-red-900/50 focus:ring-2 focus:ring-error rounded-lg text-sm px-4 py-3 text-error dark:text-red-400" type="email" value="a.sterling@highbridge.io"/>
+<p class="text-[10px] text-error dark:text-red-400 font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">error</span> Duplicate Email: Record already exists in shard-04
+                                </p>
+</div>
+<div class="space-y-1.5">
+<label class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant dark:text-slate-500 px-1">Initial Reserve (USD)</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant dark:text-slate-500 font-mono text-sm">$</span>
+<input class="w-full bg-surface-container-low dark:bg-slate-950 border border-error/20 dark:border-red-900/50 focus:ring-2 focus:ring-error rounded-lg text-sm pl-8 pr-4 py-3 text-error dark:text-red-400" type="number" value="150"/>
+</div>
+<p class="text-[10px] text-error dark:text-red-400 font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">info</span> Insufficient Initial Balance: Minimum reserve is $500.00
+                                </p>
+</div>
+<button class="w-full bg-primary dark:bg-slate-700 text-on-primary dark:text-white py-3 rounded-lg font-bold text-sm mt-4 hover:opacity-90 transition-opacity" type="submit">
+                                Generate Identity Record
+                            </button>
+</form>
+</div>
+<div class="bg-primary-container/30 dark:bg-slate-900/50 p-4 rounded-xl flex gap-4 items-start border border-primary/10 dark:border-slate-800">
+<span class="material-symbols-outlined text-primary dark:text-slate-400" data-icon="gpp_good">gpp_good</span>
+<div>
+<p class="text-[12px] font-bold text-on-primary-container dark:text-slate-300">Security Protocol</p>
+<p class="text-[11px] text-on-primary-container/80 dark:text-slate-500 leading-relaxed">All new accounts are subject to 24-hour verification holds before outward transfers are authorized.</p>
+</div>
+</div>
+</section>
+<!-- Account Details View Section -->
+<section class="col-span-12 lg:col-span-8 space-y-8">
+<div class="bg-surface-container-lowest dark:bg-slate-900 rounded-xl shadow-sm border border-outline-variant/10 dark:border-slate-800 overflow-hidden">
+<div class="bg-surface-container-high dark:bg-slate-800 px-8 py-6 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-container dark:bg-slate-700 flex items-center justify-center text-on-tertiary-container dark:text-slate-200 font-black text-xl">
+                                    ER
+                                </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-xl font-bold text-on-surface dark:text-white">Evelyn Rothschild</h3>
+<span class="px-2 py-0.5 bg-success-container/20 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20 dark:border-emerald-500/40">Verified</span>
+</div>
+<p class="text-xs text-on-surface-variant dark:text-slate-500 font-mono">UUID: 8f4c-2291-a9b0-ff01</p>
+</div>
+</div>
+<div class="text-right">
+<div class="text-[10px] font-black text-on-surface-variant dark:text-slate-500 uppercase tracking-tighter">Current Balance</div>
+<div class="text-2xl font-black text-on-surface dark:text-white tracking-tighter">$2,448,901.12</div>
+</div>
+</div>
+<div class="p-8 grid grid-cols-2 gap-x-12 gap-y-8">
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant dark:text-slate-500 uppercase tracking-widest">Account Holder</label>
+<p class="text-sm font-semibold text-on-surface dark:text-slate-300">Evelyn Rothschild</p>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant dark:text-slate-500 uppercase tracking-widest">Contact Identity</label>
+<p class="text-sm font-semibold text-on-surface dark:text-slate-300">evelyn.r@rothschild-assets.ch</p>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant dark:text-slate-500 uppercase tracking-widest">Ledger Status</label>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<p class="text-sm font-bold text-on-surface dark:text-slate-300">Active / Operational</p>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant dark:text-slate-500 uppercase tracking-widest">KYC Validation Control</label>
+<div class="relative mt-1">
+<select class="w-full bg-surface-container-low dark:bg-slate-950 border-none rounded-lg text-xs font-bold py-2.5 pl-4 pr-10 appearance-none focus:ring-2 focus:ring-primary dark:focus:ring-slate-700 text-on-surface dark:text-slate-300">
+<option selected="" value="verified">Verified (L3 Authority)</option>
+<option value="pending">Pending Review</option>
+<option value="rejected">Rejected / Blacklisted</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-600">unfold_more</span>
+</div>
+</div>
+</div>
+<div class="px-8 pb-8 flex gap-4">
+<button class="flex-1 bg-surface-container-high dark:bg-slate-800 text-on-surface dark:text-slate-300 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-surface-variant dark:hover:bg-slate-700 transition-colors border dark:border-slate-700/50">
+<span class="material-symbols-outlined text-[18px]">history</span> View Audit Logs
+                            </button>
+<button class="flex-1 bg-surface-container-high dark:bg-slate-800 text-on-surface dark:text-slate-300 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-surface-variant dark:hover:bg-slate-700 transition-colors border dark:border-slate-700/50">
+<span class="material-symbols-outlined text-[18px]">ac_unit</span> Freeze Assets
+                            </button>
+<button class="flex-1 bg-error/10 dark:bg-red-950/20 text-error dark:text-red-400 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-error/20 dark:hover:bg-red-950/30 transition-colors border border-error/20 dark:border-red-900/30">
+<span class="material-symbols-outlined text-[18px]">delete</span> Terminate Record
+                            </button>
+</div>
+</div>
+<!-- Additional Context: System Health Bento -->
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-surface-container-low dark:bg-slate-900 p-5 rounded-xl border border-outline-variant/10 dark:border-slate-800">
+<div class="text-[10px] font-black text-on-surface-variant dark:text-slate-500 uppercase tracking-widest mb-1">Shard Latency</div>
+<div class="text-xl font-black text-on-surface dark:text-white">14ms</div>
+<div class="mt-2 w-full bg-surface-container-highest dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[85%]"></div>
+</div>
+</div>
+<div class="bg-surface-container-low dark:bg-slate-900 p-5 rounded-xl border border-outline-variant/10 dark:border-slate-800">
+<div class="text-[10px] font-black text-on-surface-variant dark:text-slate-500 uppercase tracking-widest mb-1">KYC Queue</div>
+<div class="text-xl font-black text-on-surface dark:text-white">1288</div>
+<p class="text-[10px] text-on-surface-variant dark:text-slate-500 mt-1">+12% from yesterday</p>
+</div>
+<div class="bg-surface-container-low dark:bg-slate-900 p-5 rounded-xl border border-outline-variant/10 dark:border-slate-800">
+<div class="text-[10px] font-black text-on-surface-variant dark:text-slate-500 uppercase tracking-widest mb-1">System Load</div>
+<div class="text-xl font-black text-on-surface dark:text-amber-500 text-amber-600">High</div>
+<p class="text-[10px] text-amber-600/80 dark:text-amber-500/60 mt-1">Rebalancing node 0xFE...</p>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

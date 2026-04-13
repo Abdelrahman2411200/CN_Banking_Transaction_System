@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Fraud Ops</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sidebar-active-indicator {
+            width: 4px;
+            height: 24px;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col h-full py-6 px-4 gap-2 z-50">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</h1>
+<p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">Banking Ops</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">account_balance</span> Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">swap_horiz</span> Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">menu_book</span> Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">gpp_maybe</span> Fraud
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">notifications</span> Notifications
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">health_and_safety</span> Platform Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200 ease-in-out font-sans text-[13px] font-medium" href="#">
+<span class="material-symbols-outlined">analytics</span> Observability
+            </a>
+</nav>
+<div class="mt-auto flex items-center gap-3 p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-800/50">
+<div class="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional headshot of a male systems operator in a corporate setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2r8uDFJT29K8XvgyHUqDygYg5YfhEZ8_d-Alda8IbBI7CNrLrdjZ9WKJjK_-p0OkzCOSaNjVM9OoQ2Sz2W6KY-VnGMBxdjKhPdCbLx22mkjZHCANzqxK-scQez7lkG1b5rTC166Z6y0XR_rZaXPGO-f-CboiGFZYeM6eyReXRhiHZiOL6tKgU33mymlBDz9Q0uvsaTG-pJkq1XoJxPMvEhRTBOvXF5PoggKr30X9V3zaa1bSIuBF6NR82aKbGje0_MnO_vXE8ERc"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold text-slate-900 dark:text-white truncate">System Operator</p>
+<p class="text-[10px] text-slate-500 truncate">Production Env</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar Component -->
+<header class="bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-sans text-sm tracking-tight border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center w-full px-6 h-16 sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-on-surface-variant font-medium">
+<span>Sovereign Ledger</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-semibold">Fraud Monitoring</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1.5 rounded text-lg active:scale-[0.98] duration-150">monitor_heart</button>
+<button class="material-symbols-outlined hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1.5 rounded text-lg active:scale-[0.98] duration-150">notifications</button>
+<button class="material-symbols-outlined hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1.5 rounded text-lg active:scale-[0.98] duration-150">settings</button>
+</div>
+</div>
+</header>
+<!-- Canvas Body -->
+<div class="p-8 max-w-[1400px] mx-auto space-y-8">
+<!-- Fraud Stats Dashboard -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary transition-all">
+<p class="text-label-sm font-bold text-on-surface-variant uppercase tracking-tighter mb-2">Alerts Today</p>
+<div class="flex items-end gap-3">
+<h2 class="text-3xl font-black tracking-tight">1,284</h2>
+<span class="text-error font-bold text-xs pb-1">+12%</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-tertiary-fixed transition-all">
+<p class="text-label-sm font-bold text-on-surface-variant uppercase tracking-tighter mb-2">Flagged Volume</p>
+<div class="flex items-end gap-3">
+<h2 class="text-3xl font-black tracking-tight">$4.2M</h2>
+<span class="text-on-surface-variant font-medium text-xs pb-1">Total Assets</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-error transition-all">
+<p class="text-label-sm font-bold text-on-surface-variant uppercase tracking-tighter mb-2">Critical Blockers</p>
+<div class="flex items-end gap-3">
+<h2 class="text-3xl font-black tracking-tight">24</h2>
+<span class="text-error-dim font-bold text-xs pb-1">Action Required</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-secondary transition-all">
+<p class="text-label-sm font-bold text-on-surface-variant uppercase tracking-tighter mb-2">Rule Health</p>
+<div class="flex items-end gap-3">
+<h2 class="text-3xl font-black tracking-tight">99.8%</h2>
+<span class="text-on-surface-variant font-medium text-xs pb-1">Accuracy</span>
+</div>
+</div>
+</section>
+<!-- Layout with Critical Detail and Main Table -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left: Critical Alert Detail -->
+<section class="lg:col-span-4 space-y-6">
+<h3 class="text-headline-sm font-black text-on-surface tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+                        Immediate Attention
+                    </h3>
+<div class="bg-error-container/10 border-2 border-error/20 p-6 rounded-xl relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-error text-white text-[10px] font-black uppercase px-2 py-1 rounded">Locked</span>
+</div>
+<div class="mb-6">
+<p class="text-error font-bold text-xs uppercase tracking-widest mb-1">Triggered: rapid_drain</p>
+<h4 class="text-xl font-black tracking-tight mb-2 text-error-dim">System Account Freeze</h4>
+<p class="text-sm text-on-error-container leading-relaxed">Account <span class="font-mono font-bold">SL-8842-109</span> attempted 45 outbound transfers totaling $892k in 180 seconds. Automated lock protocol engaged.</p>
+</div>
+<div class="space-y-4 mb-8">
+<div class="flex justify-between items-center py-2 border-b border-error/10">
+<span class="text-xs font-bold text-on-surface-variant">Account ID</span>
+<span class="font-mono text-sm font-bold">ACC_99218203</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-error/10">
+<span class="text-xs font-bold text-on-surface-variant">Owner</span>
+<span class="text-sm font-bold">Global Tech Holdings</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-error/10">
+<span class="text-xs font-bold text-on-surface-variant">Risk Score</span>
+<span class="text-error text-sm font-black">98/100</span>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-error text-white font-bold py-3 rounded-lg hover:brightness-90 transition-all text-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">gpp_bad</span> Confirm Fraud &amp; Purge
+                            </button>
+<button class="w-full bg-white text-on-surface font-bold py-3 rounded-lg border border-outline-variant/30 hover:bg-slate-50 transition-all text-sm">
+                                False Positive &amp; Restore
+                            </button>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl space-y-4">
+<h5 class="text-sm font-black uppercase tracking-widest">Top Fraud Rules</h5>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-sm font-medium">velocity_check</span>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-bold">422 alerts</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[85%]"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm font-medium">cross_border_burst</span>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-bold">189 alerts</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[45%]"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm font-medium">unusual_mcc_spike</span>
+<span class="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-bold">92 alerts</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[22%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right: Fraud Alerts Table -->
+<section class="lg:col-span-8 space-y-6">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<h3 class="text-headline-sm font-black text-on-surface tracking-tight">Active Fraud Stream</h3>
+<div class="flex items-center gap-2">
+<div class="flex bg-surface-container-high rounded-lg p-1">
+<button class="px-4 py-1.5 rounded-md text-xs font-bold bg-white shadow-sm text-on-surface">Live View</button>
+<button class="px-4 py-1.5 rounded-md text-xs font-bold text-on-surface-variant hover:text-on-surface">Historical</button>
+</div>
+<button class="bg-primary text-white p-2 rounded-lg material-symbols-outlined text-sm">filter_list</button>
+</div>
+</div>
+<!-- Filters Bar -->
+<div class="bg-surface-container-low p-4 rounded-xl flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-2 rounded-lg border border-outline-variant/10">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 font-medium" placeholder="Account ID or Rule..." type="text"/>
+</div>
+<select class="bg-surface-container-lowest border-outline-variant/10 rounded-lg text-sm font-bold text-on-surface-variant focus:ring-primary h-10 px-4">
+<option>Severity: All</option>
+<option>Critical</option>
+<option>High Risk</option>
+<option>Medium</option>
+</select>
+<select class="bg-surface-container-lowest border-outline-variant/10 rounded-lg text-sm font-bold text-on-surface-variant focus:ring-primary h-10 px-4">
+<option>Date Range: Last 24h</option>
+<option>Last 7 Days</option>
+</select>
+<button class="ml-auto text-xs font-bold text-primary hover:underline">Clear all filters</button>
+</div>
+<!-- Modern Tonal Data Table -->
+<div class="space-y-3">
+<!-- Table Header -->
+<div class="grid grid-cols-12 px-6 py-2 text-[11px] font-black uppercase tracking-widest text-on-surface-variant">
+<div class="col-span-2">Severity</div>
+<div class="col-span-3">Account ID</div>
+<div class="col-span-3">Rule Triggered</div>
+<div class="col-span-3">Timestamp</div>
+<div class="col-span-1 text-right">Action</div>
+</div>
+<!-- Rows -->
+<div class="grid grid-cols-12 items-center bg-surface-container-lowest p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-error-container/20 text-on-error-container px-3 py-1 rounded-full text-[10px] font-black uppercase">Critical</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-8842-109</div>
+<div class="col-span-3 font-medium text-sm">rapid_drain</div>
+<div class="col-span-3 text-sm text-on-surface-variant">Just Now</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+<div class="grid grid-cols-12 items-center bg-surface-container-low p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase">High</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-2291-304</div>
+<div class="col-span-3 font-medium text-sm">velocity_check</div>
+<div class="col-span-3 text-sm text-on-surface-variant">4 mins ago</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+<div class="grid grid-cols-12 items-center bg-surface-container-lowest p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-[10px] font-black uppercase">Medium</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-0012-992</div>
+<div class="col-span-3 font-medium text-sm">geo_velocity</div>
+<div class="col-span-3 text-sm text-on-surface-variant">12 mins ago</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+<div class="grid grid-cols-12 items-center bg-surface-container-low p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">Low</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-3341-218</div>
+<div class="col-span-3 font-medium text-sm">odd_hour_login</div>
+<div class="col-span-3 text-sm text-on-surface-variant">24 mins ago</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+<div class="grid grid-cols-12 items-center bg-surface-container-lowest p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-error-container/20 text-on-error-container px-3 py-1 rounded-full text-[10px] font-black uppercase">Critical</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-7712-401</div>
+<div class="col-span-3 font-medium text-sm">mismatch_kyc</div>
+<div class="col-span-3 text-sm text-on-surface-variant">32 mins ago</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+<div class="grid grid-cols-12 items-center bg-surface-container-low p-6 rounded-xl hover:bg-surface-variant transition-all cursor-pointer">
+<div class="col-span-2">
+<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase">High</span>
+</div>
+<div class="col-span-3 font-mono text-sm font-bold">SL-1120-833</div>
+<div class="col-span-3 font-medium text-sm">bulk_beneficiary_add</div>
+<div class="col-span-3 text-sm text-on-surface-variant">41 mins ago</div>
+<div class="col-span-1 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface">open_in_new</button>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center py-4">
+<p class="text-xs font-bold text-on-surface-variant">Showing 6 of 1,284 alerts today</p>
+<div class="flex gap-2">
+<button class="bg-surface-container-lowest border border-outline-variant/10 px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-50" disabled="">Previous</button>
+<button class="bg-surface-container-lowest border border-outline-variant/10 px-4 py-2 rounded-lg text-xs font-bold">Next Page</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

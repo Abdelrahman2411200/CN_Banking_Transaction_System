@@ -21,10 +21,10 @@ export default [
   },
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
-    files: ["**/*.ts"]
+    files: ["**/*.ts", "**/*.tsx"]
   })),
   {
-    files: ["**/*.ts"],
+    files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -32,6 +32,7 @@ export default [
       },
       globals: {
         ...globals.node,
+        ...globals.browser,
         ...globals.jest
       }
     },

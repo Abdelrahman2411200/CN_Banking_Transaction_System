@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Observability</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ccd4ee; border-radius: 10px; }
+        .log-row:hover { background-color: rgba(86, 94, 116, 0.05); }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col h-full py-6 px-4 gap-2 transition-all duration-200 ease-in-out">
+<div class="px-2 mb-8">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Production Environment</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">account_balance</span> Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">swap_horiz</span> Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">menu_book</span> Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">gpp_maybe</span> Fraud
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">notifications</span> Notifications
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">health_and_safety</span> Platform Health
+            </a>
+<a class="bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 flex items-center gap-3 px-3 py-2 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span> Observability
+            </a>
+</nav>
+<div class="mt-auto p-2 bg-surface-container-high rounded-lg flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-dim flex items-center justify-center text-white font-bold text-xs">SO</div>
+<div>
+<p class="text-[12px] font-bold text-on-surface">System Operator</p>
+<p class="text-[10px] text-on-surface-variant">L3 Support</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- Top Navigation Bar -->
+<header class="bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-sans text-sm tracking-tight border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center w-full px-6 h-16 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center gap-1 text-on-surface-variant text-[12px]">
+<span>Infrastructure</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-semibold">Observability</span>
+</div>
+</div>
+<div class="flex items-center gap-2"><button class="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" title="Toggle Theme">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors">
+<span class="material-symbols-outlined">monitor_heart</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Section Header -->
+<div class="flex items-end justify-between">
+<div>
+<h2 class="text-2xl font-black tracking-tight text-on-surface">Banking Overview</h2>
+<p class="text-on-surface-variant text-sm mt-1">Real-time transactional integrity and processing metrics.</p>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded flex items-center gap-2">
+<span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        SYSTEM NOMINAL
+                    </span>
+<span class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded flex items-center gap-2">
+                        LAST 15M
+                        <span class="material-symbols-outlined text-[14px]">expand_more</span>
+</span>
+</div>
+</div>
+<!-- Bento Grid: Core Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Request Rate Card -->
+<div class="col-span-1 bg-surface-container-lowest p-5 rounded-xl shadow-sm border-l-4 border-primary">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Request Rate</span>
+<span class="material-symbols-outlined text-primary text-[18px]">bolt</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-black text-on-surface">1,240</span>
+<span class="text-xs font-bold text-on-surface-variant">req/s</span>
+</div>
+<div class="mt-4 h-8 flex items-end gap-1">
+<div class="w-full bg-primary-container h-4 rounded-t-sm"></div>
+<div class="w-full bg-primary-container h-6 rounded-t-sm"></div>
+<div class="w-full bg-primary-container h-5 rounded-t-sm"></div>
+<div class="w-full bg-primary h-8 rounded-t-sm"></div>
+<div class="w-full bg-primary-container h-7 rounded-t-sm"></div>
+</div>
+</div>
+<!-- p95 Latency Card -->
+<div class="col-span-1 bg-surface-container-lowest p-5 rounded-xl shadow-sm border-l-4 border-tertiary">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">p95 Latency</span>
+<span class="material-symbols-outlined text-tertiary text-[18px]">timer</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-black text-on-surface">450</span>
+<span class="text-xs font-bold text-on-surface-variant">ms</span>
+</div>
+<div class="mt-2 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> 12ms from prev period
+                    </div>
+</div>
+<!-- Failed Request Rate Card -->
+<div class="col-span-1 bg-surface-container-lowest p-5 rounded-xl shadow-sm border-l-4 border-error">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Error Rate</span>
+<span class="material-symbols-outlined text-error text-[18px]">error_outline</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-black text-on-surface">0.2</span>
+<span class="text-xs font-bold text-on-surface-variant">%</span>
+</div>
+<div class="mt-2 text-[10px] font-bold text-on-surface-variant">Threshold: <span class="text-error">1.0%</span></div>
+</div>
+<!-- Load Test Summary -->
+<div class="col-span-1 bg-on-surface p-5 rounded-xl shadow-lg relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Load Test k6</span>
+<span class="px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded">PASSED</span>
+</div>
+<div class="text-xl font-bold text-white">Baseline V3</div>
+<div class="mt-4 space-y-1">
+<div class="flex justify-between text-[10px] text-slate-300 font-medium">
+<span>Thresholds</span>
+<span>14/14</span>
+</div>
+<div class="w-full bg-slate-700 h-1 rounded-full">
+<div class="bg-emerald-400 h-1 w-full rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Abstract Background Pattern -->
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-[80px] text-white">speed</span>
+</div>
+</div>
+</div>
+<!-- Infrastructure Section -->
+<div class="pt-4 border-t border-surface-container">
+<h2 class="text-2xl font-black tracking-tight text-on-surface">Infrastructure</h2>
+<p class="text-on-surface-variant text-sm mt-1">Resource allocation and persistence layer health.</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+<!-- DB & Cache Activity -->
+<div class="bg-surface-container-low rounded-xl p-6">
+<div class="grid grid-cols-2 gap-8">
+<div>
+<div class="text-[10px] font-black text-on-surface-variant uppercase mb-4">DB Pool Activity</div>
+<div class="flex items-end gap-3">
+<div class="text-4xl font-black text-on-surface">62%</div>
+<div class="pb-1">
+<div class="text-[10px] font-bold text-on-surface">Active Connections</div>
+<div class="text-[10px] text-on-surface-variant">312 of 500</div>
+</div>
+</div>
+<div class="mt-6 space-y-3">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-on-surface-variant">Write Latency</span>
+<span class="text-on-surface">14ms</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[14%]"></div>
+</div>
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-on-surface-variant">Read Latency</span>
+<span class="text-on-surface">2ms</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[4%]"></div>
+</div>
+</div>
+</div>
+<div class="border-l border-outline-variant/20 pl-8">
+<div class="text-[10px] font-black text-on-surface-variant uppercase mb-4">Redis Memory</div>
+<div class="flex items-end gap-3">
+<div class="text-4xl font-black text-on-surface">4.2</div>
+<div class="pb-1">
+<div class="text-[10px] font-bold text-on-surface">GB Used</div>
+<div class="text-[10px] text-on-surface-variant">Max: 8.0 GB</div>
+</div>
+</div>
+<div class="mt-8">
+<div class="h-16 w-full bg-white rounded-lg flex items-center justify-center border border-dashed border-outline-variant">
+<span class="text-[10px] font-bold text-on-surface-variant italic">Cache Hit Ratio: 99.4%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Log Search Mock UI (Loki Style) -->
+<div class="bg-on-surface text-slate-300 rounded-xl overflow-hidden flex flex-col shadow-xl">
+<div class="bg-slate-800 p-3 flex items-center gap-3 border-b border-slate-700">
+<span class="material-symbols-outlined text-[18px] text-slate-400">search</span>
+<input class="bg-transparent border-none text-[12px] font-mono p-0 focus:ring-0 w-full text-emerald-400" placeholder="Query logs..." type="text" value="requestId: 'tx-9921-a'"/>
+<div class="flex gap-2">
+<button class="px-2 py-0.5 bg-slate-700 rounded text-[10px] hover:bg-slate-600">Run</button>
+<button class="px-2 py-0.5 bg-slate-700 rounded text-[10px] hover:bg-slate-600">Live</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto max-h-[180px] p-2 font-mono text-[11px] leading-relaxed">
+<div class="log-row py-1 px-2 border-l-2 border-emerald-500/50 mb-1">
+<span class="text-slate-500">2023-10-27 14:20:01.442</span>
+<span class="text-emerald-400 mx-2">INFO</span>
+<span class="text-slate-100">Received transaction request tx-9921-a</span>
+</div>
+<div class="log-row py-1 px-2 border-l-2 border-emerald-500/50 mb-1">
+<span class="text-slate-500">2023-10-27 14:20:01.458</span>
+<span class="text-emerald-400 mx-2">DEBUG</span>
+<span class="text-slate-400">Auth check passed for account: AC-8821</span>
+</div>
+<div class="log-row py-1 px-2 border-l-2 border-amber-500/50 mb-1">
+<span class="text-slate-500">2023-10-27 14:20:01.480</span>
+<span class="text-amber-400 mx-2">WARN</span>
+<span class="text-slate-100">Redis cache miss; falling back to PostgreSQL</span>
+</div>
+<div class="log-row py-1 px-2 border-l-2 border-emerald-500/50 mb-1">
+<span class="text-slate-500">2023-10-27 14:20:01.512</span>
+<span class="text-emerald-400 mx-2">INFO</span>
+<span class="text-slate-100">Transaction persistence successful</span>
+</div>
+<div class="log-row py-1 px-2 border-l-2 border-emerald-500/50">
+<span class="text-slate-500">2023-10-27 14:20:01.515</span>
+<span class="text-emerald-400 mx-2">INFO</span>
+<span class="text-slate-100">Response 200 OK sent to client</span>
+</div>
+</div>
+<div class="bg-slate-800 px-4 py-1.5 flex justify-between items-center">
+<span class="text-[9px] uppercase tracking-tighter text-slate-500 font-black">LOKI DATA SOURCE</span>
+<span class="text-[9px] text-slate-500 font-bold">Showing 5 lines</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Data Table (Operational Integrity) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 overflow-hidden">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-black tracking-tight text-on-surface">Service Map Integrity</h3>
+<button class="text-tertiary text-[12px] font-bold flex items-center gap-1">
+                        View Network Graph <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+<div class="w-full">
+<div class="grid grid-cols-5 gap-4 px-4 py-2 bg-surface-container-low rounded-t-lg">
+<div class="text-[11px] font-black text-on-surface-variant uppercase">Service</div>
+<div class="text-[11px] font-black text-on-surface-variant uppercase">Instance</div>
+<div class="text-[11px] font-black text-on-surface-variant uppercase">Uptime</div>
+<div class="text-[11px] font-black text-on-surface-variant uppercase">CPU</div>
+<div class="text-[11px] font-black text-on-surface-variant uppercase text-right">Status</div>
+</div>
+<div class="divide-y divide-surface-container-high">
+<!-- Row 1 -->
+<div class="grid grid-cols-5 gap-4 px-4 py-4 hover:bg-surface-container-low transition-colors items-center">
+<div class="text-[13px] font-bold text-on-surface">auth-api-v2</div>
+<div class="text-[12px] font-mono text-on-surface-variant">pod-ax-99</div>
+<div class="text-[12px] text-on-surface-variant">14d 2h</div>
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[22%]"></div>
+</div>
+<span class="text-[11px] font-bold text-on-surface">22%</span>
+</div>
+<div class="text-right">
+<span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase">Healthy</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-5 gap-4 px-4 py-4 hover:bg-surface-container-low transition-colors items-center">
+<div class="text-[13px] font-bold text-on-surface">ledger-worker</div>
+<div class="text-[12px] font-mono text-on-surface-variant">pod-lw-01</div>
+<div class="text-[12px] text-on-surface-variant">2d 11h</div>
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full w-[84%]"></div>
+</div>
+<span class="text-[11px] font-bold text-on-surface">84%</span>
+</div>
+<div class="text-right">
+<span class="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-black rounded-full uppercase">Stressed</span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-5 gap-4 px-4 py-4 hover:bg-surface-container-low transition-colors items-center">
+<div class="text-[13px] font-bold text-on-surface">payment-gateway</div>
+<div class="text-[12px] font-mono text-on-surface-variant">pod-pg-42</div>
+<div class="text-[12px] text-on-surface-variant">31d 5h</div>
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[41%]"></div>
+</div>
+<span class="text-[11px] font-bold text-on-surface">41%</span>
+</div>
+<div class="text-right">
+<span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase">Healthy</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

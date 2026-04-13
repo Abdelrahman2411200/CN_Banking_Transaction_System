@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger - System Audit</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift {
+            background-color: #f0f4f7;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background flex h-screen overflow-hidden">
+<!-- SideNavBar (The Anchor) -->
+<aside class="hidden md:flex flex-col h-full py-6 px-4 gap-2 w-64 fixed left-0 top-0 tonal-shift border-r border-slate-200/50">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 tracking-tighter">Sovereign Ledger</h1>
+<p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">Production Environment</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span> Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="swap_horiz">swap_horiz</span> Transfers
+            </a>
+<!-- Active State: Ledger -->
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium bg-slate-200 text-slate-900 border-l-4 border-slate-900 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span> Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="gpp_maybe">gpp_maybe</span> Fraud
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span> Notifications
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="health_and_safety">health_and_safety</span> Platform Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 hover:bg-slate-200/30 transition-all duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span> Observability
+            </a>
+</nav>
+<div class="mt-auto p-3 bg-surface-container rounded-xl flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary text-xs font-bold">SO</div>
+<div class="overflow-hidden">
+<p class="text-[12px] font-bold text-slate-900 truncate">System Operator</p>
+<p class="text-[10px] text-slate-500 truncate">Banking Ops</p>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 md:ml-64 flex flex-col h-full overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-slate-50 border-b border-slate-200/50 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-slate-500 text-xs font-medium">
+<span>Systems</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-900 font-semibold">Ledger Audit</span>
+</div>
+</div>
+<div class="flex items-center gap-2"><button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-lg" title="Toggle Theme">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Stats Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant/10">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest mb-1">Total Debits</p>
+<h3 class="text-2xl font-black text-on-surface">$1,242,900.50</h3>
+<div class="mt-3 flex items-center gap-1 text-[10px] font-bold text-error">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 4.2% increase
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant/10">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest mb-1">Total Credits</p>
+<h3 class="text-2xl font-black text-on-surface">$1,580,210.00</h3>
+<div class="mt-3 flex items-center gap-1 text-[10px] font-bold text-success">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 12.8% increase
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant/10">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest mb-1">Net Balance</p>
+<h3 class="text-2xl font-black text-primary">$337,309.50</h3>
+<div class="mt-3 flex items-center gap-1 text-[10px] font-bold text-tertiary">
+<span class="material-symbols-outlined text-[14px]">balance</span> System Balanced
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant/10">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest mb-1">Entry Count</p>
+<h3 class="text-2xl font-black text-on-surface">14,202</h3>
+<div class="mt-3 flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">history</span> Last 24 hours
+                    </div>
+</div>
+</section>
+<!-- Control Bar -->
+<section class="bg-surface-container-low p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-lowest border-outline-variant/20 rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary w-64 placeholder:text-slate-400" placeholder="Transfer ID Lookup..." type="text"/>
+</div>
+<div class="h-8 w-px bg-slate-300 mx-2"></div>
+<div class="flex items-center gap-2">
+<input class="bg-surface-container-lowest border-outline-variant/20 rounded-lg text-xs px-2 py-1.5 focus:ring-primary" type="date"/>
+<span class="text-xs text-slate-400 font-bold">TO</span>
+<input class="bg-surface-container-lowest border-outline-variant/20 rounded-lg text-xs px-2 py-1.5 focus:ring-primary" type="date"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<select class="bg-surface-container-lowest border-outline-variant/20 rounded-lg text-xs px-3 py-1.5 focus:ring-primary">
+<option>Limit: 50</option>
+<option>Limit: 100</option>
+<option>Limit: 500</option>
+</select>
+<div class="flex items-center bg-surface-container-lowest rounded-lg border border-outline-variant/20 overflow-hidden">
+<button class="p-1.5 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<span class="px-3 text-xs font-bold border-x border-outline-variant/20 h-full flex items-center">Page 1 of 284</span>
+<button class="p-1.5 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Main Data Table -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-highest">
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Entry Timestamp</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Type</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant">Reference ID</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant text-right">Amount</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant text-center">Status</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-on-surface-variant"></th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<!-- Row 1: Completed -->
+<tr class="group hover:bg-surface-variant transition-colors border-b border-outline-variant/5">
+<td class="px-6 py-4">
+<p class="text-xs font-bold text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:22:01.004 UTC</p>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase">Credit</span>
+</td>
+<td class="px-6 py-4">
+<code class="text-[11px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">TXN-992-XPA-12</code>
+</td>
+<td class="px-6 py-4 text-right">
+<p class="text-sm font-bold text-on-surface">$12,400.00</p>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+<span class="w-1 h-1 rounded-full bg-emerald-600 mr-1.5"></span> Post-Commit
+                                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Waiting for Ledger Event -->
+<tr class="group bg-slate-50/50 hover:bg-surface-variant transition-colors border-b border-outline-variant/5">
+<td class="px-6 py-4">
+<p class="text-xs font-bold text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:21:58.892 UTC</p>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-black px-2 py-0.5 rounded bg-on-surface-variant/10 text-on-surface-variant uppercase">Debit</span>
+</td>
+<td class="px-6 py-4">
+<code class="text-[11px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">TXN-482-LKK-09</code>
+</td>
+<td class="px-6 py-4 text-right">
+<p class="text-sm font-bold text-on-surface">-$1,020.45</p>
+</td>
+<td class="px-6 py-4 text-center">
+<div class="flex flex-col items-center gap-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 italic">
+<span class="w-1.5 h-1.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mr-1.5"></span> Waiting for Ledger Event
+                                    </span>
+<span class="text-[9px] text-slate-400">Eventual consistency delay</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Completed -->
+<tr class="group hover:bg-surface-variant transition-colors border-b border-outline-variant/5">
+<td class="px-6 py-4">
+<p class="text-xs font-bold text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:20:12.441 UTC</p>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase">Credit</span>
+</td>
+<td class="px-6 py-4">
+<code class="text-[11px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">TXN-110-ZXC-88</code>
+</td>
+<td class="px-6 py-4 text-right">
+<p class="text-sm font-bold text-on-surface">$250,000.00</p>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+<span class="w-1 h-1 rounded-full bg-emerald-600 mr-1.5"></span> Post-Commit
+                                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Error State -->
+<tr class="group hover:bg-surface-variant transition-colors border-b border-outline-variant/5">
+<td class="px-6 py-4">
+<p class="text-xs font-bold text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:18:05.119 UTC</p>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-black px-2 py-0.5 rounded bg-on-surface-variant/10 text-on-surface-variant uppercase">Debit</span>
+</td>
+<td class="px-6 py-4">
+<code class="text-[11px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">TXN-009-QWE-43</code>
+</td>
+<td class="px-6 py-4 text-right">
+<p class="text-sm font-bold text-on-surface">-$5,000.00</p>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-error-container/20 text-error">
+<span class="w-1 h-1 rounded-full bg-error mr-1.5"></span> Reconciliation Error
+                                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Completed -->
+<tr class="group hover:bg-surface-variant transition-colors border-b border-outline-variant/5">
+<td class="px-6 py-4">
+<p class="text-xs font-bold text-on-surface">Oct 24, 2023</p>
+<p class="text-[10px] text-on-surface-variant">14:15:33.201 UTC</p>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase">Credit</span>
+</td>
+<td class="px-6 py-4">
+<code class="text-[11px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">TXN-556-BVC-11</code>
+</td>
+<td class="px-6 py-4 text-right">
+<p class="text-sm font-bold text-on-surface">$45.00</p>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+<span class="w-1 h-1 rounded-full bg-emerald-600 mr-1.5"></span> Post-Commit
+                                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- Bottom Information Panel -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Audit Logs -->
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-sm font-black text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-lg text-primary">security</span> System Audit Log
+                        </h4>
+<button class="text-[11px] font-bold text-primary uppercase hover:underline">View All Logs</button>
+</div>
+<div class="space-y-4">
+<div class="flex gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-slate-300"></div>
+<div>
+<p class="text-[12px] font-bold text-on-surface">New Ledger Anchor Created</p>
+<p class="text-[10px] text-on-surface-variant">Node ID: 44-US-EAST • 2 minutes ago</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-emerald-500"></div>
+<div>
+<p class="text-[12px] font-bold text-on-surface">Consistency Check Passed</p>
+<p class="text-[10px] text-on-surface-variant">1,402 entries verified across 4 clusters • 15 minutes ago</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-amber-500"></div>
+<div>
+<p class="text-[12px] font-bold text-on-surface">Sharding Process Initiated</p>
+<p class="text-[10px] text-on-surface-variant">Cluster auto-scale trigger • 42 minutes ago</p>
+</div>
+</div>
+</div>
+</div>
+<!-- System Performance Visualization Space -->
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 relative overflow-hidden group">
+<div class="relative z-10">
+<h4 class="text-sm font-black text-on-surface mb-1">Ledger Distribution</h4>
+<p class="text-[11px] text-on-surface-variant mb-6">Real-time throughput by transaction volume</p>
+<div class="flex items-end gap-1 h-32">
+<div class="flex-1 bg-primary/20 rounded-t-sm h-[40%] group-hover:h-[55%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/40 rounded-t-sm h-[65%] group-hover:h-[80%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/20 rounded-t-sm h-[30%] group-hover:h-[20%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/60 rounded-t-sm h-[85%] group-hover:h-[95%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/30 rounded-t-sm h-[50%] group-hover:h-[40%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/80 rounded-t-sm h-[90%] group-hover:h-[70%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/50 rounded-t-sm h-[70%] group-hover:h-[85%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/20 rounded-t-sm h-[45%] group-hover:h-[35%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/90 rounded-t-sm h-[100%] group-hover:h-[80%] transition-all duration-700"></div>
+<div class="flex-1 bg-primary/40 rounded-t-sm h-[60%] group-hover:h-[75%] transition-all duration-700"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">
+<span>00:00</span>
+<span>06:00</span>
+<span>12:00</span>
+<span>18:00</span>
+<span>Current</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- System Footer Metadata -->
+<footer class="px-6 py-4 bg-slate-50 border-t border-slate-200/50 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+<div class="flex items-center gap-6">
+<span>Cluster: NA-CENTRAL-1</span>
+<span>Latency: 14ms</span>
+<span class="text-emerald-600">Sync: Real-time</span>
+</div>
+<div>
+                © 2023 Sovereign Ledger Infrastructure
+            </div>
+</footer>
+</main>
+<!-- Contextual FAB (Hidden as per requirement for Details/Table focus, but kept structure for logic) -->
+<!-- Suppressed on Data heavy Ledger Audit for focus -->
+</body></html>

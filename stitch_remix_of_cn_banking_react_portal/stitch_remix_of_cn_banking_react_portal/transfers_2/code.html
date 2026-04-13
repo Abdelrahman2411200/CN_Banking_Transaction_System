@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#f6f9ff",
+                        "on-background": "#2a3439",
+                        "on-tertiary-container": "#002d47",
+                        "primary-fixed": "#dae2fd",
+                        "on-primary-container": "#4a5167",
+                        "on-primary": "#f7f7ff",
+                        "secondary-container": "#d5e3fc",
+                        "inverse-on-surface": "#9a9d9f",
+                        "on-secondary": "#f8f8ff",
+                        "tertiary-container": "#51b0f6",
+                        "on-tertiary-fixed-variant": "#003655",
+                        "surface-tint": "#565e74",
+                        "error-container": "#fe8983",
+                        "error": "#9f403d",
+                        "surface-container-high": "#e1e9ee",
+                        "tertiary-fixed-dim": "#40a2e7",
+                        "surface-variant": "#d9e4ea",
+                        "on-error-container": "#752121",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#526074",
+                        "background": "#f7f9fb",
+                        "on-surface": "#2a3439",
+                        "outline": "#717c82",
+                        "tertiary-dim": "#005886",
+                        "surface-container": "#e8eff3",
+                        "on-primary-fixed": "#373f54",
+                        "surface-container-low": "#f0f4f7",
+                        "on-tertiary-fixed": "#000d19",
+                        "primary-dim": "#4a5268",
+                        "tertiary": "#006499",
+                        "secondary-dim": "#465468",
+                        "tertiary-fixed": "#51b0f6",
+                        "on-surface-variant": "#566166",
+                        "on-primary-fixed-variant": "#535b71",
+                        "outline-variant": "#a9b4b9",
+                        "primary-fixed-dim": "#ccd4ee",
+                        "primary-container": "#dae2fd",
+                        "error-dim": "#4e0309",
+                        "secondary-fixed": "#d5e3fc",
+                        "on-secondary-fixed-variant": "#4e5c71",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#324053",
+                        "on-secondary-container": "#455367",
+                        "inverse-surface": "#0b0f10",
+                        "primary": "#565e74",
+                        "secondary-fixed-dim": "#c7d5ed",
+                        "inverse-primary": "#dae2fd",
+                        "surface-container-highest": "#d9e4ea",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#fff7f6",
+                        "surface-dim": "#cfdce3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift {
+            background-color: #f0f4f7;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Production Environment</p>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_balance">account_balance</span>
+                Accounts
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="swap_horiz">swap_horiz</span>
+                Transfers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu_book">menu_book</span>
+                Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="gpp_maybe">gpp_maybe</span>
+                Fraud
+            </a>
+<div class="my-4 border-t border-slate-200/50 dark:border-slate-800/50"></div>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+                Notifications
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="health_and_safety">health_and_safety</span>
+                Platform Health
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+                Observability
+            </a>
+</nav>
+<div class="mt-auto flex items-center gap-3 px-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] text-on-primary font-bold">SO</div>
+<div class="flex flex-col">
+<span class="text-[12px] font-bold text-slate-900 dark:text-white">System Operator</span>
+<span class="text-[10px] text-slate-500">Tier 3 Auth</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center w-full px-8 h-16 sticky top-0 z-30">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<div class="h-4 w-[1px] bg-slate-300"></div>
+<div class="flex items-center gap-2 text-sm text-slate-500">
+<span>Operations</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-semibold">Transfer Funds</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:bg-slate-200/50 p-2 rounded-lg transition-colors" data-icon="monitor_heart">monitor_heart</span>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:bg-slate-200/50 p-2 rounded-lg transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:bg-slate-200/50 p-2 rounded-lg transition-colors" data-icon="settings">settings</span>
+</div>
+<img alt="User Profile" class="w-8 h-8 rounded-full object-cover" data-alt="professional portrait of a middle-aged male executive in a sharp business suit with soft corporate office lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1FvoXxxgIIV2ko8Td39W1TkX7zVsu_PnUH0QVbFeXGx-HIAL-y2hZdieq_ly2agreCljkUC-8CxrpeG4EZ5elGg28n2a37BUv4U2vy9d9N5KXmzmf3ainotzHWMFBWkdW2NXyGbdhM6SMEUDEI2rFsT90qEzEcMW2vfi68w6Dse9boi8NFR4kCcRfTRfBisWqY0Pe1i3gfnFDOwy508qOoTZqJljVI7XVBgX2nIHwawjWsORLZvd-O6_LOTzC03CVqlXwQPh13cE"/>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto w-full grid grid-cols-12 gap-8">
+<!-- Alert Banner Area -->
+<div class="col-span-12 flex flex-col gap-4">
+<div class="bg-error-container/20 border-l-4 border-error p-4 rounded-r-lg flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error" data-icon="warning">warning</span>
+<div>
+<p class="text-sm font-bold text-on-error-container">Insufficient Funds</p>
+<p class="text-xs text-on-error-container/80">Account ID: **9942 requires additional $2,450.00 for this sweep.</p>
+</div>
+</div>
+<button class="text-xs font-bold uppercase tracking-wider text-error underline">View Logs</button>
+</div>
+</div>
+<!-- Transfer Engine -->
+<div class="col-span-12 lg:col-span-8 flex flex-col gap-8">
+<!-- Primary Form Card -->
+<div class="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/10 shadow-sm">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h2 class="text-2xl font-black tracking-tight text-on-surface">Initiate Transfer</h2>
+<p class="text-sm text-on-surface-variant">Transactional Saga Protocol v2.4</p>
+</div>
+<div class="bg-surface-container-low px-4 py-2 rounded-lg text-right">
+<label class="block text-[10px] font-bold text-outline uppercase tracking-widest mb-1">Idempotency-Key</label>
+<code class="text-xs font-mono font-bold text-primary">tx_883_saga_a92f0012bc</code>
+</div>
+</div>
+<form class="grid grid-cols-2 gap-6">
+<div class="col-span-2 md:col-span-1">
+<label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wide">From Account</label>
+<select class="w-full bg-surface-container-low border-transparent rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+<option>OPERATIONAL_MAIN_USD (**4401)</option>
+<option>LIQUIDITY_RESERVE_STABLE (**1122)</option>
+<option>PAYROLL_DISTRIBUTION (**8839)</option>
+</select>
+<div class="mt-2 flex justify-between px-1">
+<span class="text-[10px] text-outline">Available Balance</span>
+<span class="text-[10px] font-bold text-tertiary">$1,240,492.12</span>
+</div>
+</div>
+<div class="col-span-2 md:col-span-1">
+<label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wide">To Account (Destination)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-low border-transparent rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-primary transition-all" type="text" value="ACC_CORP_VENDOR_99482"/>
+<span class="absolute right-3 top-3 text-[10px] font-bold text-success-dim bg-emerald-100 px-2 py-0.5 rounded uppercase tracking-tighter">Verified</span>
+</div>
+</div>
+<div class="col-span-2">
+<label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wide">Transfer Amount</label>
+<div class="relative">
+<span class="absolute left-4 top-3 text-lg font-bold text-on-surface-variant">$</span>
+<input class="w-full bg-surface-container-low border-transparent rounded-lg py-3 pl-8 pr-4 text-xl font-bold focus:ring-2 focus:ring-primary transition-all" placeholder="0.00" type="text"/>
+</div>
+</div>
+<div class="col-span-2 pt-4">
+<button class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-sm tracking-wide hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-primary/10">
+                                EXECUTE ATOMIC TRANSACTION
+                            </button>
+</div>
+</form>
+</div>
+<!-- Saga Progress Visualizer -->
+<div class="bg-surface-container-low rounded-xl p-8">
+<h3 class="text-xs font-black uppercase tracking-[0.2em] text-outline mb-8">Active Transaction Saga</h3>
+<div class="relative">
+<!-- Progress Line -->
+<div class="absolute top-5 left-0 w-full h-[2px] bg-outline-variant/30"></div>
+<div class="absolute top-5 left-0 w-2/3 h-[2px] bg-primary"></div>
+<div class="relative flex justify-between items-start">
+<!-- Step 1: Create -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center z-10 shadow-md">
+<span class="material-symbols-outlined text-[20px]" data-icon="check" data-weight="fill">check</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-black uppercase text-on-surface">Created</p>
+<p class="text-[10px] text-outline mt-1">12:04:11.02</p>
+</div>
+</div>
+<!-- Step 2: Debit -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center z-10 shadow-md">
+<span class="material-symbols-outlined text-[20px]" data-icon="check" data-weight="fill">check</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-black uppercase text-on-surface">Debit</p>
+<p class="text-[10px] text-outline mt-1">12:04:11.88</p>
+</div>
+</div>
+<!-- Step 3: Credit (Failure State) -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error text-on-primary flex items-center justify-center z-10 shadow-md ring-4 ring-error/20">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-black uppercase text-error">Credit Failed</p>
+<p class="text-[10px] font-bold text-error/80 bg-error/10 px-2 py-0.5 mt-2 rounded">COMPENSATING</p>
+</div>
+</div>
+<!-- Step 4: Completed -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-outline-variant text-on-surface-variant flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-[20px]" data-icon="flag">flag</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-black uppercase text-outline">Finalized</p>
+<p class="text-[10px] text-outline mt-1">Pending...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Detail Drawer (Simulated Side Panel) -->
+<div class="col-span-12 lg:col-span-4">
+<div class="bg-surface-container-highest rounded-xl p-6 h-full flex flex-col gap-6 sticky top-24 border border-outline-variant/10">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<h4 class="text-sm font-black uppercase tracking-widest text-on-surface">Transaction Detail</h4>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Detailed runtime logs for Saga ID <span class="font-mono font-bold text-on-surface">SAG-99120-X</span></p>
+</div>
+<div class="flex flex-col gap-4">
+<div class="bg-surface-container-lowest p-4 rounded-lg">
+<span class="block text-[10px] font-bold text-outline uppercase mb-1">Status</span>
+<span class="inline-flex items-center gap-2 text-[12px] font-extrabold text-error">
+                                ROLLBACK_IN_PROGRESS
+                                <span class="material-symbols-outlined animate-spin text-[14px]">refresh</span>
+</span>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg">
+<span class="block text-[10px] font-bold text-outline uppercase mb-1">Saga State</span>
+<span class="block text-xs font-mono text-on-surface">STATE_CREDIT_DENIED_RETRY_EXHAUSTED</span>
+</div>
+<div class="bg-error/5 p-4 rounded-lg border border-error/10">
+<span class="block text-[10px] font-bold text-error uppercase mb-1">Error Message</span>
+<p class="text-xs font-medium text-error leading-tight">Remote destination account is marked as FROZEN by compliance audit service. Compensation flow initiated to restore source balance.</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg">
+<span class="block text-[10px] font-bold text-outline uppercase mb-2">Audit Timestamps</span>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px]">
+<span class="text-outline">Init</span>
+<span class="font-mono text-on-surface-variant">2023-11-20T12:04:11Z</span>
+</div>
+<div class="flex justify-between text-[11px]">
+<span class="text-outline">Debit Lock</span>
+<span class="font-mono text-on-surface-variant">2023-11-20T12:04:12Z</span>
+</div>
+<div class="flex justify-between text-[11px]">
+<span class="text-outline">Credit Attempt</span>
+<span class="font-mono text-error">2023-11-20T12:04:14Z</span>
+</div>
+<div class="flex justify-between text-[11px]">
+<span class="text-outline">Comp. Trigger</span>
+<span class="font-mono text-on-surface font-bold">2023-11-20T12:04:15Z</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<button class="w-full border border-outline text-outline py-3 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-surface-container-low transition-colors">
+                            DOWNLOAD LOG BUNDLE (.JSON)
+                        </button>
+</div>
+</div>
+</div>
+<!-- Contextual Knowledge Bento -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-4" data-icon="lock_reset">lock_reset</span>
+<h5 class="text-sm font-black mb-2">Idempotency Guarantee</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Each request is tagged with a unique key to prevent duplicate processing during network retries.</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<span class="material-symbols-outlined text-tertiary mb-4" data-icon="hub">hub</span>
+<h5 class="text-sm font-black mb-2">Eventual Consistency</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Transactions use Saga orchestration to ensure all services reach a terminal state across distributed clusters.</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<span class="material-symbols-outlined text-warning mb-4" data-icon="shield_with_heart">shield_with_heart</span>
+<h5 class="text-sm font-black mb-2">Compliance Layer</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Automated AML/KYC checks are run asynchronously before credit operations are authorized.</p>
+</div>
+</div>
+</div>
+</main>
+</body></html>

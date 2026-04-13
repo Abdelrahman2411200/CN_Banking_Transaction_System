@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#f6f9ff",
+                    "on-background": "#2a3439",
+                    "on-tertiary-container": "#002d47",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary-container": "#4a5167",
+                    "on-primary": "#f7f7ff",
+                    "secondary-container": "#d5e3fc",
+                    "inverse-on-surface": "#9a9d9f",
+                    "on-secondary": "#f8f8ff",
+                    "tertiary-container": "#51b0f6",
+                    "on-tertiary-fixed-variant": "#003655",
+                    "surface-tint": "#565e74",
+                    "error-container": "#fe8983",
+                    "error": "#9f403d",
+                    "surface-container-high": "#e1e9ee",
+                    "tertiary-fixed-dim": "#40a2e7",
+                    "surface-variant": "#d9e4ea",
+                    "on-error-container": "#752121",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#526074",
+                    "background": "#f7f9fb",
+                    "on-surface": "#2a3439",
+                    "outline": "#717c82",
+                    "tertiary-dim": "#005886",
+                    "surface-container": "#e8eff3",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "on-tertiary-fixed": "#000d19",
+                    "primary-dim": "#4a5268",
+                    "tertiary": "#006499",
+                    "secondary-dim": "#465468",
+                    "tertiary-fixed": "#51b0f6",
+                    "on-surface-variant": "#566166",
+                    "on-primary-fixed-variant": "#535b71",
+                    "outline-variant": "#a9b4b9",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "primary-container": "#dae2fd",
+                    "error-dim": "#4e0309",
+                    "secondary-fixed": "#d5e3fc",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#324053",
+                    "on-secondary-container": "#455367",
+                    "inverse-surface": "#0b0f10",
+                    "primary": "#565e74",
+                    "secondary-fixed-dim": "#c7d5ed",
+                    "inverse-primary": "#dae2fd",
+                    "surface-container-highest": "#d9e4ea",
+                    "surface-bright": "#f7f9fb",
+                    "on-error": "#fff7f6",
+                    "surface-dim": "#cfdce3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shift { background-color: #f0f4f7; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col py-6 px-4 gap-2 z-50">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Banking Ops</h1>
+<p class="text-[11px] font-bold text-on-surface-variant tracking-widest uppercase opacity-60">Production Environment</p>
+</div>
+<nav class="flex flex-col gap-1">
+<!-- Active State: Dashboard -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-l-4 border-slate-900 dark:border-slate-100 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="account_balance">account_balance</span>
+<span>Accounts</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="swap_horiz">swap_horiz</span>
+<span>Transfers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="menu_book">menu_book</span>
+<span>Ledger</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="gpp_maybe">gpp_maybe</span>
+<span>Fraud</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="notifications">notifications</span>
+<span>Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="health_and_safety">health_and_safety</span>
+<span>Platform Health</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/30 dark:hover:bg-slate-800/30 font-medium text-[13px] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="analytics">analytics</span>
+<span>Observability</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-full bg-slate-300 overflow-hidden">
+<img alt="System Operator" class="w-full h-full object-cover" data-alt="A professional headshot of a system administrator with a clean tech background in a banking security context" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA2hscMZYjhAzaVyuRbiaC-b_88it2tfZ7pebaZigfnr-8uh-xJWI9n543ggBEzi-dIbUUdoBeNUIC9gkhlCzrDChJXqHer_ojdj-85j5JT0f1BnOBFJTgfR-ULaK5KNmPLOH5_E2iES0KyDNBsMpdakZctU1lC9zqNYcdycl6XosOBdUzZ2l4k7bJ-TE8Je_19MgwAfUnCNyVpxYU8MXVg10Wffn70RZJmCVEtKGGwUbmwxHHrpaPiChRzGLHi8qPpJYBEW74ROo"/>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-slate-900 dark:text-white">Op-7742</span>
+<span class="text-[10px] text-slate-500">Tier 3 Admin</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 ml-64 min-h-screen flex flex-col">
+<!-- TopNavBar Component -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-slate-900 dark:text-white tracking-tighter">Sovereign Ledger</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<nav class="flex items-center gap-2 text-sm font-sans tracking-tight">
+<span class="text-slate-500">Main</span>
+<span class="material-symbols-outlined text-xs text-slate-400" data-icon="chevron_right">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-semibold">Dashboard</span>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-surface-container rounded-lg px-3 py-1.5 gap-2">
+<span class="material-symbols-outlined text-lg text-on-surface-variant" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 placeholder:text-on-surface-variant/60" placeholder="Search transactions..." type="text"/>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-150">
+<span class="material-symbols-outlined text-xl" data-icon="light_mode">light_mode</span>
+</button><button class="p-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-150">
+<span class="material-symbols-outlined text-xl" data-icon="monitor_heart">monitor_heart</span>
+</button>
+<button class="p-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-150 relative">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-[0.98] duration-150">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="p-8 space-y-8 max-w-[1400px]">
+<!-- Alert Banner -->
+<div class="bg-error-container/10 border-l-4 border-error p-4 rounded-r-xl flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container/20 flex items-center justify-center text-error">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+</div>
+<div>
+<h4 class="text-on-error-container font-bold text-sm">SECURITY ALERT: ACCOUNT RESTRICTED</h4>
+<p class="text-on-error-container/70 text-xs mt-0.5">Primary checking account (•••• 8921) has been temporarily <span class="font-bold underline">Frozen</span> due to unusual activity from IP 192.168.1.1.</p>
+</div>
+</div>
+<button class="text-xs font-bold px-4 py-2 bg-error text-on-error rounded-lg hover:bg-error-dim transition-colors">Resolve Now</button>
+</div>
+<!-- Bento Metrics Section -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Balance Card -->
+<div class="md:col-span-2 bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-on-surface-variant text-xs font-bold tracking-widest uppercase opacity-60">Total Liquidity</p>
+<h2 class="text-4xl font-black text-on-surface mt-2">$1,248,392.44</h2>
+</div>
+<div class="flex gap-2">
+<span class="px-2 py-1 bg-tertiary-container/20 text-tertiary text-[10px] font-bold rounded-full border border-tertiary/20">KYC VERIFIED</span>
+<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 uppercase">Active</span>
+</div>
+</div>
+<div class="mt-8 flex items-end justify-between">
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant font-medium">Checking</span>
+<span class="text-sm font-bold">$422,100.00</span>
+</div>
+<div class="w-[1px] h-6 bg-outline-variant/30"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant font-medium">Investments</span>
+<span class="text-sm font-bold">$826,292.44</span>
+</div>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-slate-200"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-slate-300"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-slate-400"></div>
+</div>
+</div>
+<!-- Decorative Background Gradient -->
+<div class="absolute -right-16 -top-16 w-64 h-64 bg-primary-container/20 rounded-full blur-3xl -z-10"></div>
+</div>
+<!-- Last Activity Metric -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col justify-between">
+<div>
+<p class="text-on-surface-variant text-xs font-bold tracking-widest uppercase opacity-60">Recent Volume</p>
+<h3 class="text-2xl font-bold text-on-surface mt-2">+ $12,402.00</h3>
+<p class="text-xs text-emerald-600 font-medium mt-1">↑ 14.2% vs last month</p>
+</div>
+<div class="h-12 w-full mt-4 flex items-end gap-1">
+<div class="flex-1 bg-primary/10 h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[60%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/40 h-[30%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/60 h-[80%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary h-[100%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/30 h-[50%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/10 h-[20%] rounded-t-sm"></div>
+</div>
+</div>
+<!-- KYC Status / Risk Score -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col justify-between">
+<div>
+<p class="text-on-surface-variant text-xs font-bold tracking-widest uppercase opacity-60">Risk Profile</p>
+<h3 class="text-2xl font-bold text-on-surface mt-2">Low</h3>
+<p class="text-xs text-on-surface-variant mt-1">Last scan: 2 mins ago</p>
+</div>
+<div class="flex items-center gap-2 mt-4">
+<span class="material-symbols-outlined text-emerald-500" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-xs font-semibold">Tier 1 Authenticated</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions & Data Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Activity Table (Left) -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl overflow-hidden">
+<div class="px-6 py-4 flex justify-between items-center bg-surface-bright">
+<h3 class="font-bold text-lg tracking-tight">Recent Activity</h3>
+<button class="text-tertiary text-xs font-bold hover:underline">Download CSV</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-6 py-3 text-[10px] font-black uppercase text-on-surface-variant tracking-widest">Entity / Transaction</th>
+<th class="px-6 py-3 text-[10px] font-black uppercase text-on-surface-variant tracking-widest">Reference</th>
+<th class="px-6 py-3 text-[10px] font-black uppercase text-on-surface-variant tracking-widest text-right">Amount</th>
+<th class="px-6 py-3 text-[10px] font-black uppercase text-on-surface-variant tracking-widest">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-variant transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="payments">payments</span>
+</div>
+<div>
+<p class="text-sm font-bold">Inbound: Corporate Payroll</p>
+<p class="text-[10px] text-on-surface-variant">Oct 24, 2023 • 09:12 AM</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-[11px] text-on-surface-variant">TXN-4920-X92</td>
+<td class="px-6 py-4 text-sm font-bold text-right text-emerald-600">+ $14,200.00</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded uppercase tracking-tighter">Settled</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-surface-variant transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-lg" data-icon="send">send</span>
+</div>
+<div>
+<p class="text-sm font-bold">Transfer: Global Wire</p>
+<p class="text-[10px] text-on-surface-variant">Oct 23, 2023 • 04:45 PM</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-[11px] text-on-surface-variant">TXN-8812-L21</td>
+<td class="px-6 py-4 text-sm font-bold text-right">- $3,000.00</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-tertiary-container/20 text-tertiary text-[9px] font-black rounded uppercase tracking-tighter">Pending</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-variant transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-error-container/20 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-lg" data-icon="shopping_cart">shopping_cart</span>
+</div>
+<div>
+<p class="text-sm font-bold">Merchant: AWS Infrastructure</p>
+<p class="text-[10px] text-on-surface-variant">Oct 22, 2023 • 11:20 AM</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-[11px] text-on-surface-variant">TXN-7102-K32</td>
+<td class="px-6 py-4 text-sm font-bold text-right">- $942.12</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-error-container/20 text-error text-[9px] font-black rounded uppercase tracking-tighter">Rejected</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-surface-variant transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="account_balance">account_balance</span>
+</div>
+<div>
+<p class="text-sm font-bold">Dividend: Vanguard Inc.</p>
+<p class="text-[10px] text-on-surface-variant">Oct 21, 2023 • 08:00 AM</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-[11px] text-on-surface-variant">TXN-1109-M99</td>
+<td class="px-6 py-4 text-sm font-bold text-right text-emerald-600">+ $1,240.50</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded uppercase tracking-tighter">Settled</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Quick Actions Panel (Right) -->
+<div class="space-y-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl">
+<h3 class="font-bold text-lg mb-6">Quick Actions</h3>
+<div class="grid grid-cols-1 gap-3">
+<button class="w-full flex items-center gap-4 p-4 rounded-lg bg-primary text-on-primary hover:opacity-90 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+<div class="text-left">
+<p class="text-sm font-bold">Create Account</p>
+<p class="text-[10px] opacity-70">Open new sub-ledger account</p>
+</div>
+</button>
+<button class="w-full flex items-center gap-4 p-4 rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-on-surface" data-icon="send">send</span>
+<div class="text-left">
+<p class="text-sm font-bold text-on-surface">Send Transfer</p>
+<p class="text-[10px] text-on-surface-variant">Inter-ledger or external wire</p>
+</div>
+</button>
+<button class="w-full flex items-center gap-4 p-4 rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-on-surface" data-icon="list_alt">list_alt</span>
+<div class="text-left">
+<p class="text-sm font-bold text-on-surface">View Ledger</p>
+<p class="text-[10px] text-on-surface-variant">Full historical audit logs</p>
+</div>
+</button>
+</div>
+</div>
+<!-- Market Context Card -->
+<div class="bg-slate-900 rounded-xl p-6 text-white relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">System Health</p>
+<div class="flex items-center gap-2 mt-4">
+<div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+<span class="text-sm font-bold uppercase tracking-tight">Nodes Operational</span>
+</div>
+<p class="text-xs text-slate-400 mt-2">Latency: 14ms</p>
+<p class="text-xs text-slate-400">TPS: 14,290 / 20k cap</p>
+</div>
+<div class="absolute right-0 bottom-0 opacity-20">
+<span class="material-symbols-outlined text-9xl translate-x-1/4 translate-y-1/4" data-icon="grid_view" style="font-variation-settings: 'wght' 200;">grid_view</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
