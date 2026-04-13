@@ -5,16 +5,27 @@ import { MemoryRouter } from "react-router-dom";
 import type { AuthSession } from "../auth/session";
 import { PortalRoutes } from "./PortalRoutes";
 import { adminOperatorRoutes, customerOperatorRoutes, publicRoutes } from "./routeConfig";
+import type { DashboardClient } from "../dashboard/DashboardPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
   accessToken: `token-for-${role}`,
   role
 });
 
+const dashboardClient: DashboardClient = vi.fn().mockResolvedValue({
+  ok: true,
+  status: 200,
+  data: {
+    accounts: { items: [], source: "gateway" },
+    transfers: { items: [], source: "gateway" },
+    health: { message: "Gateway healthy", services: {}, status: "healthy" }
+  }
+});
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <PortalRoutes getSession={() => session} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} />
+      <PortalRoutes dashboardClient={dashboardClient} getSession={() => session} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} />
     </MemoryRouter>
   );
 
@@ -52,7 +63,7 @@ describe("PortalRoutes", () => {
 
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
-        <PortalRoutes getSession={() => null} refreshSession={refreshSession} />
+        <PortalRoutes dashboardClient={dashboardClient} getSession={() => null} refreshSession={refreshSession} />
       </MemoryRouter>
     );
 
