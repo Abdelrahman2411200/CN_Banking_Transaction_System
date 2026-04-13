@@ -2,37 +2,159 @@ export interface ApiSuccess<T> {
   ok: true;
   status: number;
   data: T;
+  requestId?: string;
 }
 
 export interface ApiFailure {
   ok: false;
   status: number;
   error: string;
+  requestId?: string;
+  retryAfter?: number;
 }
 
 export type ApiResult<T> = ApiSuccess<T> | ApiFailure;
 
-export const requestJson = async <T>(url: string, init?: RequestInit): Promise<ApiResult<T>> => {
-  try {
+export type AccessTokenProvider = string | (() => string | null);
+
+export interface ApiRequestInit extends RequestInit {
+  accessToken?: AccessTokenProvider;
+  refreshAccessToken?: () => Promise<string | null>;
+  retryOnUnauthorized?: boolean;
+}
+
+interface GatewayErrorBody {
+  error?: string;
+  message?: string;
+  retryAfter?: number;
+}
+
+const defaultErrorByStatus: Record<number, string> = {
+  400: "validation_failed",
+  401: "invalid_token",
+  403: "forbidden",
+  404: "not_found",
+  429: "rate_limit_exceeded",
+  500: "internal_error",
+  503: "service_degraded"
+};
+
+const getAccessToken = (provider?: AccessTokenProvider): string | null => {
+  if (!provider) {
+    return null;
+  }
+
+  return typeof provider === "string" ? provider : provider();
+};
+
+const getRequestId = (headers: Headers): string | undefined =>
+  headers.get("x-request-id") ?? headers.get("X-Request-Id") ?? undefined;
+
+const toRetryAfter = (headers: Headers, body: GatewayErrorBody | null): number | undefined => {
+  const headerValue = headers.get("retry-after");
+  const parsedHeader = headerValue ? Number(headerValue) : NaN;
+
+  if (Number.isFinite(parsedHeader)) {
+    return parsedHeader;
+  }
+
+  return typeof body?.retryAfter === "number" ? body.retryAfter : undefined;
+};
+
+const parseResponseJson = async <T>(response: Response): Promise<T | GatewayErrorBody | null> => {
+  if (response.status === 204) {
+    return null;
+  }
+
+  return (await response.json().catch(() => null)) as T | GatewayErrorBody | null;
+};
+
+const normalizeGatewayError = (
+  status: number,
+  data: GatewayErrorBody | null,
+  requestId?: string,
+  retryAfter?: number,
+  fallback = "request_failed"
+): ApiFailure => ({
+  ok: false,
+  status,
+  error:
+    data && typeof data.error === "string"
+      ? data.error
+      : defaultErrorByStatus[status] ?? fallback,
+  requestId,
+  retryAfter
+});
+
+const buildHeaders = (init?: ApiRequestInit, accessToken?: string | null): Headers => {
+  const headers = new Headers(init?.headers);
+  headers.set("Accept", headers.get("Accept") ?? "application/json");
+
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  return headers;
+};
+
+const toFetchInit = (init?: ApiRequestInit): RequestInit => {
+  if (!init) {
+    return {};
+  }
+
+  const requestInit: RequestInit = { ...init };
+  delete (requestInit as ApiRequestInit).accessToken;
+  delete (requestInit as ApiRequestInit).refreshAccessToken;
+  delete (requestInit as ApiRequestInit).retryOnUnauthorized;
+  return requestInit;
+};
+
+export const jsonRequest = (method: string, body?: unknown): RequestInit => ({
+  method,
+  headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+  body: body === undefined ? undefined : JSON.stringify(body)
+});
+
+export const requestJson = async <T>(url: string, init?: ApiRequestInit): Promise<ApiResult<T>> => {
+  const attempt = async (accessToken?: string | null): Promise<ApiResult<T>> => {
     const response = await fetch(url, {
-      headers: { Accept: "application/json", ...init?.headers },
-      ...init
+      ...toFetchInit(init),
+      headers: buildHeaders(init, accessToken)
     });
 
-    const data = (await response.json().catch(() => null)) as T | { error?: string } | null;
+    const data = await parseResponseJson<T>(response);
+    const requestId = getRequestId(response.headers);
 
     if (!response.ok) {
-      return {
-        ok: false,
-        status: response.status,
-        error:
-          data && typeof data === "object" && "error" in data && typeof data.error === "string"
-            ? data.error
-            : "request_failed"
-      };
+      return normalizeGatewayError(
+        response.status,
+        data as GatewayErrorBody | null,
+        requestId,
+        toRetryAfter(response.headers, data as GatewayErrorBody | null)
+      );
     }
 
-    return { ok: true, status: response.status, data: data as T };
+    return { ok: true, status: response.status, data: data as T, requestId };
+  };
+
+  try {
+    const accessToken = getAccessToken(init?.accessToken);
+    const firstResult = await attempt(accessToken);
+
+    if (
+      !firstResult.ok &&
+      firstResult.status === 401 &&
+      init?.refreshAccessToken &&
+      init.retryOnUnauthorized !== false
+    ) {
+      const refreshedToken = await init.refreshAccessToken();
+
+      if (refreshedToken) {
+        return attempt(refreshedToken);
+      }
+    }
+
+    return firstResult;
   } catch (error) {
     return {
       ok: false,

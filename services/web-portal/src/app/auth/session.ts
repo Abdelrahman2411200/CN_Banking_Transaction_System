@@ -4,8 +4,18 @@ export type UserRole = "customer" | "operator" | "admin";
 
 export interface AuthSession {
   accessToken: string;
+  refreshToken?: string;
   role: UserRole;
   subject?: string;
+  expiresAt?: number;
+  requestId?: string;
+}
+
+export interface StoredAuthSession {
+  refreshToken?: string;
+  role?: UserRole;
+  subject?: string;
+  expiresAt?: number;
 }
 
 interface JwtClaims {
@@ -15,6 +25,7 @@ interface JwtClaims {
 }
 
 const userRoles: UserRole[] = ["customer", "operator", "admin"];
+let inMemorySession: AuthSession | null = null;
 
 const isUserRole = (value: unknown): value is UserRole =>
   typeof value === "string" && userRoles.includes(value as UserRole);
@@ -25,7 +36,10 @@ const decodeBase64Url = (value: string): string => {
   return atob(`${normalized}${padding}`);
 };
 
-export const parseJwtSession = (accessToken: string): AuthSession | null => {
+export const parseJwtSession = (
+  accessToken: string,
+  overrides: Partial<Omit<AuthSession, "accessToken" | "role">> = {}
+): AuthSession | null => {
   const [, payload] = accessToken.split(".");
 
   if (!payload) {
@@ -42,6 +56,7 @@ export const parseJwtSession = (accessToken: string): AuthSession | null => {
 
     return {
       accessToken,
+      ...overrides,
       role,
       subject: claims.sub
     };
@@ -50,7 +65,55 @@ export const parseJwtSession = (accessToken: string): AuthSession | null => {
   }
 };
 
-export const readStoredSession = (storage: Storage = window.localStorage): AuthSession | null => {
+export const setInMemorySession = (session: AuthSession | null): void => {
+  inMemorySession = session;
+};
+
+export const writeStoredSession = (
+  session: AuthSession,
+  storage: Storage = window.sessionStorage
+): void => {
+  inMemorySession = session;
+
+  const storedSession: StoredAuthSession = {
+    refreshToken: session.refreshToken,
+    role: session.role,
+    subject: session.subject,
+    expiresAt: session.expiresAt
+  };
+
+  storage.setItem(authStorageKey, JSON.stringify(storedSession));
+};
+
+export const clearStoredSession = (storage: Storage = window.sessionStorage): void => {
+  inMemorySession = null;
+  storage.removeItem(authStorageKey);
+};
+
+export const readRefreshToken = (storage: Storage = window.sessionStorage): string | null => {
+  if (inMemorySession?.refreshToken) {
+    return inMemorySession.refreshToken;
+  }
+
+  const rawSession = storage.getItem(authStorageKey);
+
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawSession) as StoredAuthSession;
+    return typeof parsed.refreshToken === "string" ? parsed.refreshToken : null;
+  } catch {
+    return null;
+  }
+};
+
+export const readStoredSession = (storage: Storage = window.sessionStorage): AuthSession | null => {
+  if (inMemorySession) {
+    return inMemorySession;
+  }
+
   const rawSession = storage.getItem(authStorageKey);
 
   if (!rawSession) {
@@ -65,11 +128,21 @@ export const readStoredSession = (storage: Storage = window.localStorage): AuthS
     }
 
     if (isUserRole(parsed.role)) {
-      return {
-        accessToken: parsed.accessToken,
-        role: parsed.role,
-        subject: typeof parsed.subject === "string" ? parsed.subject : undefined
-      };
+      const subject = typeof parsed.subject === "string" ? parsed.subject : undefined;
+      const expiresAt = typeof parsed.expiresAt === "number" ? parsed.expiresAt : undefined;
+      const refreshToken = typeof parsed.refreshToken === "string" ? parsed.refreshToken : undefined;
+
+      if (typeof parsed.accessToken === "string") {
+        return {
+          accessToken: parsed.accessToken,
+          refreshToken,
+          role: parsed.role,
+          subject,
+          expiresAt
+        };
+      }
+
+      return null;
     }
 
     return parseJwtSession(parsed.accessToken);
