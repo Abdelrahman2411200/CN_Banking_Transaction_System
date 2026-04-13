@@ -1,6 +1,14 @@
 import type { ReactElement } from "react";
-import { DesignSystemGallery } from "./gallery/DesignSystemGallery";
+import { BrowserRouter } from "react-router-dom";
+import { GlobalErrorBoundary } from "./routing/GlobalErrorBoundary";
+import { PortalRoutes } from "./routing/PortalRoutes";
 
-const App = (): ReactElement => <DesignSystemGallery />;
+const App = (): ReactElement => (
+  <GlobalErrorBoundary>
+    <BrowserRouter>
+      <PortalRoutes />
+    </BrowserRouter>
+  </GlobalErrorBoundary>
+);
 
 export default App;

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "./AppShell";
 import type { NavItem } from "./Sidebar";
 
@@ -11,9 +12,11 @@ const navItems: NavItem[] = [
 describe("AppShell", () => {
   it("renders primary and mobile navigation with active item", () => {
     render(
-      <AppShell navItems={navItems} title="Design System">
-        <p>Gallery content</p>
-      </AppShell>
+      <MemoryRouter>
+        <AppShell navItems={navItems} title="Design System">
+          <p>Gallery content</p>
+        </AppShell>
+      </MemoryRouter>
     );
 
     expect(screen.getAllByText("Dashboard")).toHaveLength(2);
