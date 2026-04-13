@@ -5,7 +5,6 @@ Phase 4 uses GitHub Actions for CI on every branch/PR and CD on `main`.
 ## Required Repository Secrets
 
 - `AWS_ROLE_ARN`
-- `ECR_REGISTRY`
 - `TF_STATE_BUCKET`
 - `TF_LOCK_TABLE`
 - `DB_ACCOUNTS_PASSWORD`
@@ -21,6 +20,8 @@ Phase 4 uses GitHub Actions for CI on every branch/PR and CD on `main`.
 
 - `AWS_REGION`
 - `PUBLIC_DOMAIN`
+
+`AWS_REGION` and `PUBLIC_DOMAIN` may also be provided as legacy repository secrets, but variables are preferred because these values are not sensitive. `ECR_REGISTRY` is optional; when it is absent, CD uses the registry output from `aws-actions/amazon-ecr-login`.
 
 The `production` GitHub environment should require reviewer approval before the `terraform` and `deploy` jobs run.
 

@@ -40,7 +40,6 @@
 **Required Repository Secrets**:
 
 - `AWS_ROLE_ARN`
-- `ECR_REGISTRY`
 - `TF_STATE_BUCKET`
 - `TF_LOCK_TABLE`
 - `DB_ACCOUNTS_PASSWORD`
@@ -56,6 +55,8 @@
 
 - `AWS_REGION`
 - `PUBLIC_DOMAIN`
+
+`AWS_REGION` and `PUBLIC_DOMAIN` may be supplied as repository secrets for backward compatibility, but repository variables are preferred. `ECR_REGISTRY` is optional; if omitted, the CD workflow uses the registry reported by `aws-actions/amazon-ecr-login`.
 
 **Additional Deployment Inputs**:
 

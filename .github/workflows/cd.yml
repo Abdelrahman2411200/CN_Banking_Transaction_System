@@ -13,10 +13,10 @@ permissions:
 env:
   SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service"
   IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
-  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY || secrets.ECR_REGISTRY }}
   ECR_REPOSITORY_PREFIX: cn-banking-prod
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  PUBLIC_DOMAIN: ${{ vars.PUBLIC_DOMAIN }}
+  AWS_REGION: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
+  PUBLIC_DOMAIN: ${{ vars.PUBLIC_DOMAIN || secrets.PUBLIC_DOMAIN }}
 
 jobs:
   build-and-push:
@@ -26,27 +26,37 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
+      ecr_registry: ${{ steps.meta.outputs.ecr_registry }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Validate deployment variables
+      - name: Validate AWS region
         run: |
           set -euo pipefail
-          test -n "${AWS_REGION}" || { echo "Repository variable AWS_REGION is required"; exit 1; }
-          test -n "${PUBLIC_DOMAIN}" || { echo "Repository variable PUBLIC_DOMAIN is required"; exit 1; }
+          test -n "${AWS_REGION}" || { echo "Repository variable or secret AWS_REGION is required"; exit 1; }
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - uses: aws-actions/amazon-ecr-login@v2
+          aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
+      - id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
       - id: meta
-        run: echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+        env:
+          ECR_LOGIN_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -euo pipefail
+          registry="${ECR_REGISTRY:-$ECR_LOGIN_REGISTRY}"
+          test -n "$registry" || { echo "ECR registry could not be resolved from ECR_REGISTRY or amazon-ecr-login"; exit 1; }
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "ecr_registry=${registry}" >> "$GITHUB_OUTPUT"
       - name: Build and push all service images
+        env:
+          RESOLVED_ECR_REGISTRY: ${{ steps.meta.outputs.ecr_registry }}
         run: |
           set -euo pipefail
           for service in $SERVICES; do
-            image="$ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/$service:$IMAGE_TAG"
+            image="$RESOLVED_ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/$service:$IMAGE_TAG"
             docker build --build-arg VERSION="$IMAGE_TAG" -f "services/$service/Dockerfile" -t "$image" .
             docker push "$image"
           done
@@ -64,7 +74,7 @@ jobs:
       kafka_bootstrap_brokers: ${{ steps.tf_outputs.outputs.kafka_bootstrap_brokers }}
       mongodb_endpoint: ${{ steps.tf_outputs.outputs.mongodb_endpoint }}
     env:
-      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
       TF_VAR_accounts_db_password: ${{ secrets.DB_ACCOUNTS_PASSWORD }}
       TF_VAR_transfers_db_password: ${{ secrets.DB_TRANSFERS_PASSWORD }}
       TF_VAR_redis_auth_token: ${{ secrets.REDIS_PASSWORD }}
@@ -77,7 +87,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
@@ -86,7 +96,7 @@ jobs:
           terraform -chdir=infra/terraform/environments/prod init \
             -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
             -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE }}" \
-            -backend-config="region=${{ vars.AWS_REGION }}"
+            -backend-config="region=${{ vars.AWS_REGION || secrets.AWS_REGION }}"
       - name: Terraform plan
         run: terraform -chdir=infra/terraform/environments/prod plan -out=tfplan
       - uses: actions/upload-artifact@v4
@@ -111,6 +121,7 @@ jobs:
     needs: [build-and-push, terraform]
     environment: production
     env:
+      ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
       JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
       JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
       REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
@@ -125,9 +136,18 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
+      - name: Validate deployment variables
+        env:
+          ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "${AWS_REGION}" || { echo "Repository variable or secret AWS_REGION is required"; exit 1; }
+          test -n "${PUBLIC_DOMAIN}" || { echo "Repository variable or secret PUBLIC_DOMAIN is required"; exit 1; }
+          test -n "${ACM_CERTIFICATE_ARN}" || { echo "Repository secret ACM_CERTIFICATE_ARN is required"; exit 1; }
+          test -n "${ECR_REGISTRY}" || { echo "ECR registry output from build-and-push is required"; exit 1; }
       - name: Configure kubeconfig
-        run: aws eks update-kubeconfig --name "${{ needs.terraform.outputs.cluster_name }}" --region "${{ vars.AWS_REGION }}"
+        run: aws eks update-kubeconfig --name "${{ needs.terraform.outputs.cluster_name }}" --region "${AWS_REGION}"
       - name: Apply namespace and runtime secrets
         env:
           REDIS_ENDPOINT: ${{ needs.terraform.outputs.redis_endpoint }}

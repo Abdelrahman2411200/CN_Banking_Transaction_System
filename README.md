@@ -292,7 +292,6 @@ Use `infra/terraform/environments/dev/terraform.tfvars.example` and `infra/terra
 ### Required GitHub Secrets
 
 - `AWS_ROLE_ARN`
-- `ECR_REGISTRY`
 - `TF_STATE_BUCKET`
 - `TF_LOCK_TABLE`
 - `DB_ACCOUNTS_PASSWORD`
@@ -304,7 +303,7 @@ Use `infra/terraform/environments/dev/terraform.tfvars.example` and `infra/terra
 - `MONGODB_PASSWORD`
 - `KAFKA_SCRAM_PASSWORD`
 
-Set `AWS_REGION` and `PUBLIC_DOMAIN` as GitHub Actions repository variables. Configure the `production` GitHub environment with required reviewers before enabling the CD workflow. The EKS API endpoint is private-only by default, so GitHub-hosted runners need VPC access or a self-hosted runner in the VPC for `kubectl` deployment steps.
+Set `AWS_REGION` and `PUBLIC_DOMAIN` as GitHub Actions repository variables. The workflow also accepts legacy `AWS_REGION` and `PUBLIC_DOMAIN` secrets, but variables are preferred because these values are not sensitive. `ECR_REGISTRY` is optional; if it is not set as a repository variable or secret, CD derives it from `aws-actions/amazon-ecr-login`. Configure the `production` GitHub environment with required reviewers before enabling the CD workflow. The EKS API endpoint is private-only by default, so GitHub-hosted runners need VPC access or a self-hosted runner in the VPC for `kubectl` deployment steps.
 
 Install the AWS Load Balancer Controller with IRSA permissions in the EKS cluster before applying `infra/k8s/ingress.yaml`. Install metrics-server for HPA metrics and use a network-policy-capable CNI before relying on `infra/k8s/networkpolicies.yaml`.
 

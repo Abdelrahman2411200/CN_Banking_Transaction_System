@@ -96,7 +96,7 @@ As a maintainer, I need GitHub Actions workflows that validate every PR and depl
 - **FR-016**: `secrets.yaml` MUST contain placeholder example values only and documentation MUST direct real secrets to GitHub/AWS/Kubernetes secret management.
 - **FR-017**: CI MUST trigger on push to any branch and PR to `main`, running lint/typecheck, tests via `docker-compose.test.yml`, coverage upload, docker builds without PR push, npm audit, and Trivy scans.
 - **FR-018**: CD MUST trigger on push to `main` after CI, authenticate to AWS with OIDC, build/push commit-SHA images to ECR, run Terraform plan/apply, update EKS kubeconfig, set deployment images, wait for rollouts, and undo failed rollouts.
-- **FR-019**: Documentation MUST list required GitHub secrets: `AWS_ROLE_ARN`, `AWS_REGION`, `ECR_REGISTRY`, `TF_STATE_BUCKET`, `TF_LOCK_TABLE`, `DB_ACCOUNTS_PASSWORD`, `DB_TRANSFERS_PASSWORD`, `REDIS_PASSWORD`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET`.
+- **FR-019**: Documentation MUST list required GitHub secrets and variables: `AWS_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_LOCK_TABLE`, `DB_ACCOUNTS_PASSWORD`, `DB_TRANSFERS_PASSWORD`, `REDIS_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, plus non-secret repository variables `AWS_REGION` and `PUBLIC_DOMAIN`. `ECR_REGISTRY` MAY be configured explicitly, but CD MUST be able to derive it from ECR login when omitted.
 - **FR-020**: README documentation MUST include verification steps for `kubectl get pods -n banking`, live `/health`, and rollback via `kubectl rollout undo`.
 
 ### Key Entities

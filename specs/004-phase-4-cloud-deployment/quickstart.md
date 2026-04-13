@@ -28,7 +28,6 @@ Set these repository secrets before enabling CD:
 
 ```text
 AWS_ROLE_ARN
-ECR_REGISTRY
 TF_STATE_BUCKET
 TF_LOCK_TABLE
 DB_ACCOUNTS_PASSWORD
@@ -39,7 +38,7 @@ JWT_REFRESH_SECRET
 KAFKA_SCRAM_PASSWORD
 ```
 
-Also provide `ACM_CERTIFICATE_ARN` and `MONGODB_PASSWORD`. Set `AWS_REGION` and `PUBLIC_DOMAIN` as repository variables, and protect the GitHub `production` environment with required reviewers before enabling CD.
+Also provide `ACM_CERTIFICATE_ARN` and `MONGODB_PASSWORD`. Set `AWS_REGION` and `PUBLIC_DOMAIN` as repository variables, and protect the GitHub `production` environment with required reviewers before enabling CD. Legacy `AWS_REGION` and `PUBLIC_DOMAIN` secrets are accepted to keep CD compatible with older repository setup; `ECR_REGISTRY` is optional because the workflow derives it from the ECR login action when omitted.
 
 ## Local Image Verification
 
