@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { designTokens, semanticTokens, surfaceTokens } from "./tokens";
+import { designTokens, semanticTokens, surfaceTokens, typographyTokens } from "./tokens";
 
 describe("design tokens", () => {
   it("defines the required Vault Protocol surface tokens", () => {
@@ -23,5 +23,11 @@ describe("design tokens", () => {
   it("keeps token names unique", () => {
     const names = designTokens.map((token) => token.name);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("defines the required editorial typography scale", () => {
+    expect(Object.keys(typographyTokens)).toEqual(
+      expect.arrayContaining(["display-lg", "headline-sm", "title-sm", "body-md", "label-sm"])
+    );
   });
 });

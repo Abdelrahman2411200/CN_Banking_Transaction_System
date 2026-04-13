@@ -1,7 +1,14 @@
 import type { Config } from "tailwindcss";
+import { typographyTokens } from "./src/design-system/tokens";
 
 const cssColor = (name: string): string => `rgb(var(--tw-${name}) / <alpha-value>)`;
 const varColor = (name: string): string => `var(--color-${name})`;
+const tailwindFontSize = Object.fromEntries(
+  Object.entries(typographyTokens).map(([name, [fontSize, lineHeight, fontWeight]]) => [
+    name,
+    [fontSize, { lineHeight, fontWeight }]
+  ])
+) as Record<string, [string, { lineHeight: string; fontWeight: string }]>;
 
 export default {
   darkMode: "class",
@@ -61,6 +68,7 @@ export default {
         heading: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         label: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
       },
+      fontSize: tailwindFontSize,
       boxShadow: {
         ambient: "0 20px 40px rgb(42 52 57 / 0.08)"
       }

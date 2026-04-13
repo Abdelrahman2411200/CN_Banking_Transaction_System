@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json && vite build",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "test:e2e": "node -e \"console.log('Playwright E2E is not configured yet for the web portal.')\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
