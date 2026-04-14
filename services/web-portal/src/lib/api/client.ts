@@ -24,7 +24,7 @@ export interface ApiRequestInit extends RequestInit {
 }
 
 interface GatewayErrorBody {
-  error?: string;
+  error?: string | { code?: string; message?: string };
   message?: string;
   retryAfter?: number;
 }
@@ -75,16 +75,23 @@ const normalizeGatewayError = (
   requestId?: string,
   retryAfter?: number,
   fallback = "request_failed"
-): ApiFailure => ({
-  ok: false,
-  status,
-  error:
-    data && typeof data.error === "string"
-      ? data.error
-      : defaultErrorByStatus[status] ?? fallback,
-  requestId,
-  retryAfter
-});
+): ApiFailure => {
+  const nestedCode =
+    data && typeof data.error === "object" && typeof data.error.code === "string"
+      ? data.error.code.toLowerCase()
+      : undefined;
+
+  return {
+    ok: false,
+    status,
+    error:
+      data && typeof data.error === "string"
+        ? data.error
+        : nestedCode ?? defaultErrorByStatus[status] ?? fallback,
+    requestId,
+    retryAfter
+  };
+};
 
 const buildHeaders = (init?: ApiRequestInit, accessToken?: string | null): Headers => {
   const headers = new Headers(init?.headers);

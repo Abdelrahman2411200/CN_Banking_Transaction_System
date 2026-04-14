@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AccountManagementPage, type AccountClient } from "../accounts/AccountManagementPage";
 import { LoginPage, RegisterPage, type AuthClient } from "../auth/AuthPages";
 import { DashboardPage, type DashboardClient } from "../dashboard/DashboardPage";
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
@@ -10,6 +11,7 @@ import { ProtectedRoute, type SessionReader, type SessionRefresher } from "./Pro
 import { adminOperatorRoutes, customerOperatorRoutes } from "./routeConfig";
 
 export interface PortalRoutesProps {
+  accountClient?: AccountClient;
   authClient?: AuthClient;
   dashboardClient?: DashboardClient;
   getSession?: SessionReader;
@@ -18,6 +20,7 @@ export interface PortalRoutesProps {
 }
 
 export const PortalRoutes = ({
+  accountClient,
   authClient,
   dashboardClient,
   getSession,
@@ -36,6 +39,8 @@ export const PortalRoutes = ({
             element={
               route.path === "/dashboard"
                 ? <DashboardPage dashboardClient={dashboardClient} getSession={getSession} />
+                : route.path === "/accounts" || route.path === "/accounts/:id"
+                  ? <AccountManagementPage accountClient={accountClient} getSession={getSession} />
                 : <RoutePage route={route} />
             }
             key={route.path}
