@@ -9,7 +9,7 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts",
-    "test:e2e": "node -e \"console.log('Playwright E2E is not configured yet for the web portal.')\""
+    "test:e2e": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
@@ -19,6 +19,7 @@
     "vite": "^6.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",

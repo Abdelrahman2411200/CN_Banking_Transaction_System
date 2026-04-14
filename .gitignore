@@ -110,6 +110,8 @@ Thumbs.db
 services/*/dist/
 shared/*/dist/
 tests/*/dist/
+services/*/test-results/
+services/*/playwright-report/
 
 .claude/
 .specify/
