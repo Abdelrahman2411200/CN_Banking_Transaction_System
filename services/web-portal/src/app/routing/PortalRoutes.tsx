@@ -5,6 +5,7 @@ import { LoginPage, RegisterPage, type AuthClient } from "../auth/AuthPages";
 import { DashboardPage, type DashboardClient } from "../dashboard/DashboardPage";
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
 import { FinancialLedgerPage, type LedgerClient } from "../ledger/FinancialLedgerPage";
+import { FraudMonitoringPage, type FraudClient } from "../fraud/FraudMonitoringPage";
 import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
@@ -16,6 +17,7 @@ export interface PortalRoutesProps {
   accountClient?: AccountClient;
   authClient?: AuthClient;
   dashboardClient?: DashboardClient;
+  fraudClient?: FraudClient;
   ledgerClient?: LedgerClient;
   transferClient?: TransferClient;
   getSession?: SessionReader;
@@ -27,6 +29,7 @@ export const PortalRoutes = ({
   accountClient,
   authClient,
   dashboardClient,
+  fraudClient,
   ledgerClient,
   transferClient,
   getSession,
@@ -59,7 +62,19 @@ export const PortalRoutes = ({
         ))}
         <Route element={<ProtectedRoute allowedRoles={["operator", "admin"]} getSession={getSession} refreshSession={refreshSession} />}>
           {adminOperatorRoutes.map((route) => (
-            <Route element={<RoutePage route={route} />} key={route.path} path={route.path} />
+            <Route
+              element={<ProtectedRoute allowedRoles={route.allowedRoles} getSession={getSession} refreshSession={refreshSession} />}
+              key={route.path}
+            >
+              <Route
+                element={
+                  route.path === "/fraud" || route.path === "/fraud/alerts/:alertId"
+                    ? <FraudMonitoringPage fraudClient={fraudClient} getSession={getSession} />
+                    : <RoutePage route={route} />
+                }
+                path={route.path}
+              />
+            </Route>
           ))}
         </Route>
       </Route>

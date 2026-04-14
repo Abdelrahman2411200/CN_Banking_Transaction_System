@@ -18,6 +18,7 @@ export interface PortalRoute {
 
 const customerOperatorRoles: UserRole[] = ["customer", "operator", "admin"];
 const adminOperatorRoles: UserRole[] = ["operator", "admin"];
+const adminOnlyRoles: UserRole[] = ["admin"];
 
 export const publicRoutes = [
   { path: "/login", label: "Login" },
@@ -125,8 +126,8 @@ export const adminOperatorRoutes: PortalRoute[] = [
     icon: "policy",
     phase: "Fraud Monitoring",
     group: "admin",
-    allowedRoles: adminOperatorRoles,
-    accessLabel: "Operator / admin",
+    allowedRoles: adminOnlyRoles,
+    accessLabel: "Admin",
     sourceFamily: "fraud_monitoring_*",
     description: "Fraud KPIs, alert table, severity status, and alert detail navigation.",
     implementationNote: "This route will connect to fraud alerts and stats in Phase 9.",
@@ -138,8 +139,8 @@ export const adminOperatorRoutes: PortalRoute[] = [
     icon: "gpp_maybe",
     phase: "Fraud Monitoring",
     group: "admin",
-    allowedRoles: adminOperatorRoles,
-    accessLabel: "Operator / admin",
+    allowedRoles: adminOnlyRoles,
+    accessLabel: "Admin",
     sourceFamily: "fraud_monitoring_*",
     description: "Alert detail view for transfer and account references.",
     implementationNote: "This route will render fraud alert details in Phase 9.",

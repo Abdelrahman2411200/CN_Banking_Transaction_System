@@ -32,6 +32,7 @@ export const PortalLayout = ({
     : customerOperatorRoutes;
 
   const navItems: NavItem[] = routes
+    .filter((route) => route.allowedRoles.includes(role))
     .filter((route) => route.showInNav)
     .map((route) => ({
       active: isActiveRoute(location.pathname, route.path),
