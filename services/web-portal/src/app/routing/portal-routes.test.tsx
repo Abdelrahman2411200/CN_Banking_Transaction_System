@@ -6,6 +6,7 @@ import type { AuthSession } from "../auth/session";
 import { PortalRoutes } from "./PortalRoutes";
 import { adminOperatorRoutes, customerOperatorRoutes, publicRoutes } from "./routeConfig";
 import type { DashboardClient } from "../dashboard/DashboardPage";
+import type { LedgerClient } from "../ledger/FinancialLedgerPage";
 import type { TransferClient } from "../transfers/TransferOperationsPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
@@ -32,10 +33,20 @@ const transferClient: TransferClient = {
   })
 };
 
+const ledgerClient: LedgerClient = {
+  getAccountEntries: vi.fn(),
+  getStats: vi.fn(),
+  getTransferEntries: vi.fn().mockResolvedValue({
+    ok: false,
+    status: 400,
+    error: "validation_failed"
+  })
+};
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <PortalRoutes dashboardClient={dashboardClient} getSession={() => session} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} transferClient={transferClient} />
+      <PortalRoutes dashboardClient={dashboardClient} getSession={() => session} ledgerClient={ledgerClient} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} transferClient={transferClient} />
     </MemoryRouter>
   );
 
@@ -101,12 +112,13 @@ describe("PortalRoutes", () => {
     expect(screen.getByRole("heading", { name: "Design System Gallery" })).toBeInTheDocument();
   });
 
-  it("renders the app shell and active route for authenticated users", () => {
-    renderRoute("/transfers/transfer-123", sessionFor("operator"));
+  it("renders the app shell and active route for authenticated users", async () => {
+    renderRoute("/ledger/transfers/223e4567-e89b-12d3-a456-426614174111", sessionFor("operator"));
 
     expect(screen.getByRole("heading", { name: "Banking Ops" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Transfer Detail" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /transfers/i })[0]).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { level: 2, name: "Transfer Ledger" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /ledger/i })[0]).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByText("Ledger lookup failed")).toBeInTheDocument();
   });
 
   it("hides and blocks admin routes for customer sessions", () => {

@@ -4,6 +4,7 @@ import { AccountManagementPage, type AccountClient } from "../accounts/AccountMa
 import { LoginPage, RegisterPage, type AuthClient } from "../auth/AuthPages";
 import { DashboardPage, type DashboardClient } from "../dashboard/DashboardPage";
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
+import { FinancialLedgerPage, type LedgerClient } from "../ledger/FinancialLedgerPage";
 import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
@@ -15,6 +16,7 @@ export interface PortalRoutesProps {
   accountClient?: AccountClient;
   authClient?: AuthClient;
   dashboardClient?: DashboardClient;
+  ledgerClient?: LedgerClient;
   transferClient?: TransferClient;
   getSession?: SessionReader;
   logoutSession?: () => Promise<unknown>;
@@ -25,6 +27,7 @@ export const PortalRoutes = ({
   accountClient,
   authClient,
   dashboardClient,
+  ledgerClient,
   transferClient,
   getSession,
   logoutSession,
@@ -46,6 +49,8 @@ export const PortalRoutes = ({
                   ? <AccountManagementPage accountClient={accountClient} getSession={getSession} />
                 : route.path === "/transfers" || route.path === "/transfers/:id"
                   ? <TransferOperationsPage getSession={getSession} transferClient={transferClient} />
+                : route.path === "/ledger" || route.path === "/ledger/transfers/:transferId"
+                  ? <FinancialLedgerPage getSession={getSession} ledgerClient={ledgerClient} />
                 : <RoutePage route={route} />
             }
             key={route.path}
