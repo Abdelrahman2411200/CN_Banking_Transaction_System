@@ -4,6 +4,7 @@ import { AccountManagementPage, type AccountClient } from "../accounts/AccountMa
 import { LoginPage, RegisterPage, type AuthClient } from "../auth/AuthPages";
 import { DashboardPage, type DashboardClient } from "../dashboard/DashboardPage";
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
+import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
 import { PortalLayout } from "./PortalLayout";
@@ -14,6 +15,7 @@ export interface PortalRoutesProps {
   accountClient?: AccountClient;
   authClient?: AuthClient;
   dashboardClient?: DashboardClient;
+  transferClient?: TransferClient;
   getSession?: SessionReader;
   logoutSession?: () => Promise<unknown>;
   refreshSession?: SessionRefresher;
@@ -23,6 +25,7 @@ export const PortalRoutes = ({
   accountClient,
   authClient,
   dashboardClient,
+  transferClient,
   getSession,
   logoutSession,
   refreshSession = refreshAuthSession
@@ -41,6 +44,8 @@ export const PortalRoutes = ({
                 ? <DashboardPage dashboardClient={dashboardClient} getSession={getSession} />
                 : route.path === "/accounts" || route.path === "/accounts/:id"
                   ? <AccountManagementPage accountClient={accountClient} getSession={getSession} />
+                : route.path === "/transfers" || route.path === "/transfers/:id"
+                  ? <TransferOperationsPage getSession={getSession} transferClient={transferClient} />
                 : <RoutePage route={route} />
             }
             key={route.path}

@@ -6,6 +6,7 @@ import type { AuthSession } from "../auth/session";
 import { PortalRoutes } from "./PortalRoutes";
 import { adminOperatorRoutes, customerOperatorRoutes, publicRoutes } from "./routeConfig";
 import type { DashboardClient } from "../dashboard/DashboardPage";
+import type { TransferClient } from "../transfers/TransferOperationsPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
   accessToken: `token-for-${role}`,
@@ -22,10 +23,19 @@ const dashboardClient: DashboardClient = vi.fn().mockResolvedValue({
   }
 });
 
+const transferClient: TransferClient = {
+  create: vi.fn(),
+  get: vi.fn().mockResolvedValue({
+    ok: false,
+    status: 400,
+    error: "validation_failed"
+  })
+};
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <PortalRoutes dashboardClient={dashboardClient} getSession={() => session} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} />
+      <PortalRoutes dashboardClient={dashboardClient} getSession={() => session} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} transferClient={transferClient} />
     </MemoryRouter>
   );
 
