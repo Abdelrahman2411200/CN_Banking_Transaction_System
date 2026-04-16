@@ -9,6 +9,7 @@ import type { DashboardClient } from "../dashboard/DashboardPage";
 import type { FraudClient } from "../fraud/FraudMonitoringPage";
 import type { LedgerClient } from "../ledger/FinancialLedgerPage";
 import type { NotificationClient } from "../notifications/NotificationCenterPage";
+import type { ObservabilityClient } from "../observability/ObservabilityDashboardPage";
 import type { TransferClient } from "../transfers/TransferOperationsPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
@@ -73,6 +74,20 @@ const notificationClient: NotificationClient = {
   })
 };
 
+const observabilityClient: ObservabilityClient = {
+  getHealth: vi.fn().mockResolvedValue({
+    message: "Gateway healthy",
+    services: {
+      account: "ok",
+      fraud: "ok",
+      ledger: "ok",
+      notification: "ok",
+      transfer: "ok"
+    },
+    status: "healthy"
+  })
+};
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -82,6 +97,7 @@ const renderRoute = (path: string, session: AuthSession | null = sessionFor("ope
         getSession={() => session}
         ledgerClient={ledgerClient}
         notificationClient={notificationClient}
+        observabilityClient={observabilityClient}
         refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })}
         transferClient={transferClient}
       />
@@ -186,6 +202,18 @@ describe("PortalRoutes", () => {
     expect(
       screen
         .getAllByRole("link", { name: /notifications/i })
+        .some((link) => link.getAttribute("aria-current") === "page")
+    ).toBe(true);
+  });
+
+  it("renders observability for operators without admin-only detail", async () => {
+    renderRoute("/observability", sessionFor("operator"));
+
+    expect(await screen.findByRole("heading", { name: "Operational Health" })).toBeInTheDocument();
+    expect(screen.getByText("Admin operational detail hidden")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("link", { name: /observability/i })
         .some((link) => link.getAttribute("aria-current") === "page")
     ).toBe(true);
   });

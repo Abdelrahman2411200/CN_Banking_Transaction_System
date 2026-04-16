@@ -7,6 +7,7 @@ import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
 import { FinancialLedgerPage, type LedgerClient } from "../ledger/FinancialLedgerPage";
 import { FraudMonitoringPage, type FraudClient } from "../fraud/FraudMonitoringPage";
 import { NotificationCenterPage, type NotificationClient } from "../notifications/NotificationCenterPage";
+import { ObservabilityDashboardPage, type ObservabilityClient } from "../observability/ObservabilityDashboardPage";
 import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
@@ -21,6 +22,7 @@ export interface PortalRoutesProps {
   fraudClient?: FraudClient;
   ledgerClient?: LedgerClient;
   notificationClient?: NotificationClient;
+  observabilityClient?: ObservabilityClient;
   transferClient?: TransferClient;
   getSession?: SessionReader;
   logoutSession?: () => Promise<unknown>;
@@ -34,6 +36,7 @@ export const PortalRoutes = ({
   fraudClient,
   ledgerClient,
   notificationClient,
+  observabilityClient,
   transferClient,
   getSession,
   logoutSession,
@@ -75,6 +78,8 @@ export const PortalRoutes = ({
                     ? <FraudMonitoringPage fraudClient={fraudClient} getSession={getSession} />
                     : route.path === "/notifications"
                       ? <NotificationCenterPage getSession={getSession} notificationClient={notificationClient} />
+                    : route.path === "/observability"
+                      ? <ObservabilityDashboardPage getSession={getSession} observabilityClient={observabilityClient} />
                     : <RoutePage route={route} />
                 }
                 path={route.path}
