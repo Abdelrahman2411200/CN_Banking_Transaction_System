@@ -10,6 +10,7 @@ import type { FraudClient } from "../fraud/FraudMonitoringPage";
 import type { LedgerClient } from "../ledger/FinancialLedgerPage";
 import type { NotificationClient } from "../notifications/NotificationCenterPage";
 import type { ObservabilityClient } from "../observability/ObservabilityDashboardPage";
+import type { PlatformHealthClient } from "../platform/PlatformHealthPage";
 import type { TransferClient } from "../transfers/TransferOperationsPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
@@ -88,6 +89,20 @@ const observabilityClient: ObservabilityClient = {
   })
 };
 
+const platformHealthClient: PlatformHealthClient = {
+  getHealth: vi.fn().mockResolvedValue({
+    message: "Gateway healthy",
+    services: {
+      account: "ok",
+      fraud: "ok",
+      ledger: "ok",
+      notification: "ok",
+      transfer: "ok"
+    },
+    status: "healthy"
+  })
+};
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -98,6 +113,7 @@ const renderRoute = (path: string, session: AuthSession | null = sessionFor("ope
         ledgerClient={ledgerClient}
         notificationClient={notificationClient}
         observabilityClient={observabilityClient}
+        platformHealthClient={platformHealthClient}
         refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })}
         transferClient={transferClient}
       />
@@ -214,6 +230,24 @@ describe("PortalRoutes", () => {
     expect(
       screen
         .getAllByRole("link", { name: /observability/i })
+        .some((link) => link.getAttribute("aria-current") === "page")
+    ).toBe(true);
+  });
+
+  it("keeps platform health admin-only and renders the admin readiness route", async () => {
+    const { unmount } = renderRoute("/platform-health", sessionFor("operator"));
+
+    expect(screen.getByText("Route access restricted")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /platform health/i })).not.toBeInTheDocument();
+    unmount();
+
+    renderRoute("/platform-health", sessionFor("admin"));
+
+    expect(await screen.findByRole("heading", { name: "Runtime Readiness" })).toBeInTheDocument();
+    expect(screen.getByText("Unsupported Platform Signals")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("link", { name: /platform health/i })
         .some((link) => link.getAttribute("aria-current") === "page")
     ).toBe(true);
   });

@@ -8,6 +8,7 @@ import { FinancialLedgerPage, type LedgerClient } from "../ledger/FinancialLedge
 import { FraudMonitoringPage, type FraudClient } from "../fraud/FraudMonitoringPage";
 import { NotificationCenterPage, type NotificationClient } from "../notifications/NotificationCenterPage";
 import { ObservabilityDashboardPage, type ObservabilityClient } from "../observability/ObservabilityDashboardPage";
+import { PlatformHealthPage, type PlatformHealthClient } from "../platform/PlatformHealthPage";
 import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
@@ -23,6 +24,7 @@ export interface PortalRoutesProps {
   ledgerClient?: LedgerClient;
   notificationClient?: NotificationClient;
   observabilityClient?: ObservabilityClient;
+  platformHealthClient?: PlatformHealthClient;
   transferClient?: TransferClient;
   getSession?: SessionReader;
   logoutSession?: () => Promise<unknown>;
@@ -37,6 +39,7 @@ export const PortalRoutes = ({
   ledgerClient,
   notificationClient,
   observabilityClient,
+  platformHealthClient,
   transferClient,
   getSession,
   logoutSession,
@@ -80,6 +83,8 @@ export const PortalRoutes = ({
                       ? <NotificationCenterPage getSession={getSession} notificationClient={notificationClient} />
                     : route.path === "/observability"
                       ? <ObservabilityDashboardPage getSession={getSession} observabilityClient={observabilityClient} />
+                    : route.path === "/platform-health"
+                      ? <PlatformHealthPage getSession={getSession} platformHealthClient={platformHealthClient} />
                     : <RoutePage route={route} />
                 }
                 path={route.path}
