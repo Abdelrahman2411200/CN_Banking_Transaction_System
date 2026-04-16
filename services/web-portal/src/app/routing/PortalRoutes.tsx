@@ -6,6 +6,7 @@ import { DashboardPage, type DashboardClient } from "../dashboard/DashboardPage"
 import { DesignSystemGallery } from "../gallery/DesignSystemGallery";
 import { FinancialLedgerPage, type LedgerClient } from "../ledger/FinancialLedgerPage";
 import { FraudMonitoringPage, type FraudClient } from "../fraud/FraudMonitoringPage";
+import { NotificationCenterPage, type NotificationClient } from "../notifications/NotificationCenterPage";
 import { TransferOperationsPage, type TransferClient } from "../transfers/TransferOperationsPage";
 import { refreshAuthSession } from "../../lib/api/auth";
 import { NotFoundPage, RoutePage } from "./RoutePages";
@@ -19,6 +20,7 @@ export interface PortalRoutesProps {
   dashboardClient?: DashboardClient;
   fraudClient?: FraudClient;
   ledgerClient?: LedgerClient;
+  notificationClient?: NotificationClient;
   transferClient?: TransferClient;
   getSession?: SessionReader;
   logoutSession?: () => Promise<unknown>;
@@ -31,6 +33,7 @@ export const PortalRoutes = ({
   dashboardClient,
   fraudClient,
   ledgerClient,
+  notificationClient,
   transferClient,
   getSession,
   logoutSession,
@@ -70,6 +73,8 @@ export const PortalRoutes = ({
                 element={
                   route.path === "/fraud" || route.path === "/fraud/alerts/:alertId"
                     ? <FraudMonitoringPage fraudClient={fraudClient} getSession={getSession} />
+                    : route.path === "/notifications"
+                      ? <NotificationCenterPage getSession={getSession} notificationClient={notificationClient} />
                     : <RoutePage route={route} />
                 }
                 path={route.path}

@@ -8,6 +8,7 @@ import { adminOperatorRoutes, customerOperatorRoutes, publicRoutes } from "./rou
 import type { DashboardClient } from "../dashboard/DashboardPage";
 import type { FraudClient } from "../fraud/FraudMonitoringPage";
 import type { LedgerClient } from "../ledger/FinancialLedgerPage";
+import type { NotificationClient } from "../notifications/NotificationCenterPage";
 import type { TransferClient } from "../transfers/TransferOperationsPage";
 
 const sessionFor = (role: AuthSession["role"]): AuthSession => ({
@@ -58,10 +59,32 @@ const fraudClient: FraudClient = {
   })
 };
 
+const notificationClient: NotificationClient = {
+  getNotifications: vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      channels: ["email"],
+      mode: "event-consumer",
+      persistence: "none",
+      records: [],
+      subscribedTopics: ["bank.transfer.completed"]
+    }
+  })
+};
+
 const renderRoute = (path: string, session: AuthSession | null = sessionFor("operator")) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <PortalRoutes dashboardClient={dashboardClient} fraudClient={fraudClient} getSession={() => session} ledgerClient={ledgerClient} refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })} transferClient={transferClient} />
+      <PortalRoutes
+        dashboardClient={dashboardClient}
+        fraudClient={fraudClient}
+        getSession={() => session}
+        ledgerClient={ledgerClient}
+        notificationClient={notificationClient}
+        refreshSession={() => Promise.resolve({ ok: false, status: 401, error: "refresh_token_required" })}
+        transferClient={transferClient}
+      />
     </MemoryRouter>
   );
 
@@ -148,6 +171,23 @@ describe("PortalRoutes", () => {
 
     expect(screen.getByText("Route access restricted")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /fraud/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps notifications admin-only and renders the admin timeline route", async () => {
+    const { unmount } = renderRoute("/notifications", sessionFor("operator"));
+
+    expect(screen.getByText("Route access restricted")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /notifications/i })).not.toBeInTheDocument();
+    unmount();
+
+    renderRoute("/notifications", sessionFor("admin"));
+
+    expect(await screen.findByRole("heading", { name: "Notification Hub" })).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("link", { name: /notifications/i })
+        .some((link) => link.getAttribute("aria-current") === "page")
+    ).toBe(true);
   });
 
   it("renders not found routes", () => {
