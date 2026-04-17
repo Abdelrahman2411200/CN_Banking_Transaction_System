@@ -56,7 +56,7 @@ export const Sidebar = ({
       {items.map((item) => (
         <NavItemLink
           className={cn(
-            "flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface",
+            "flex min-h-10 min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface",
             item.active &&
               "border-l-4 border-primary bg-primary-container pl-2 text-on-primary-container"
           )}
@@ -66,7 +66,7 @@ export const Sidebar = ({
           <span aria-hidden="true" className="material-symbols-outlined text-lg">
             {item.icon}
           </span>
-          <span>{item.label}</span>
+          <span className="min-w-0 break-words">{item.label}</span>
         </NavItemLink>
       ))}
     </nav>

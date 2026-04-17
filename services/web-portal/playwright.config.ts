@@ -8,7 +8,25 @@ export default defineConfig({
   fullyParallel: false,
   projects: [
     {
-      name: "dashboard-smoke",
+      name: "phase13-360",
+      use: {
+        viewport: { height: 800, width: 360 }
+      }
+    },
+    {
+      name: "phase13-768",
+      use: {
+        viewport: { height: 900, width: 768 }
+      }
+    },
+    {
+      name: "phase13-1024",
+      use: {
+        viewport: { height: 900, width: 1024 }
+      }
+    },
+    {
+      name: "phase13-1440",
       use: {
         viewport: { height: 900, width: 1440 }
       }
@@ -16,7 +34,7 @@ export default defineConfig({
   ],
   reporter: [["list"]],
   testDir: "./e2e",
-  timeout: 30_000,
+  timeout: 60_000,
   use: {
     baseURL: "http://127.0.0.1:4175",
     trace: "retain-on-failure"

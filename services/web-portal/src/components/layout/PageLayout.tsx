@@ -21,10 +21,10 @@ export const PageHeader = ({
       {eyebrow ? (
         <p className="text-xs font-black uppercase tracking-widest text-on-surface-variant">{eyebrow}</p>
       ) : null}
-      <h2 className="text-3xl font-black tracking-normal text-on-surface">{title}</h2>
+      <h2 className="break-words text-2xl font-black tracking-normal text-on-surface sm:text-3xl">{title}</h2>
       {description ? <p className="max-w-3xl text-sm leading-6 text-on-surface-variant">{description}</p> : null}
     </div>
-    {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+    {actions ? <div className="flex min-w-0 shrink-0 flex-wrap gap-2">{actions}</div> : null}
   </section>
 );
 

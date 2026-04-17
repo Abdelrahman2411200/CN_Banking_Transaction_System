@@ -27,7 +27,7 @@ export const Button = ({
 }: ButtonProps): ReactElement => (
   <button
     className={cn(
-      "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50",
+      "inline-flex min-h-10 min-w-0 items-center justify-center gap-2 whitespace-normal rounded-lg px-4 py-2 text-center text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50",
       buttonVariants[variant],
       className
     )}

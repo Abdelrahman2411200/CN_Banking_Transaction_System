@@ -13,7 +13,7 @@ export const StatusChip = ({
 }: StatusChipProps): ReactElement => (
   <span
     className={cn(
-      "inline-flex min-h-6 items-center rounded-pill px-3 py-1 text-xs font-black uppercase tracking-wide",
+      "inline-flex min-h-6 max-w-full items-center rounded-pill px-3 py-1 text-left text-xs font-black uppercase tracking-wide",
       statusSemantics[status].containerClass,
       className
     )}

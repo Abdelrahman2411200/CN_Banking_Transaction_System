@@ -13,7 +13,7 @@ interface FieldBaseProps {
 
 const labelClass = "text-xs font-black uppercase tracking-widest text-on-surface-variant";
 const fieldClass =
-  "min-h-11 w-full rounded-lg bg-surface-container-lowest px-3 py-2 text-sm text-on-surface shadow-[inset_0_0_0_1px_rgb(169_180_185_/_0.2)] transition placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary";
+  "min-h-11 w-full min-w-0 rounded-lg bg-surface-container-lowest px-3 py-2 text-sm text-on-surface shadow-[inset_0_0_0_1px_rgb(169_180_185_/_0.2)] transition placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary";
 
 export type FieldLabelProps = LabelHTMLAttributes<HTMLLabelElement>;
 
@@ -28,7 +28,7 @@ export const Input = ({ className, error, id, label, ...props }: InputProps): Re
   const errorId = error ? `${inputId}-error` : undefined;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
       <input
         aria-describedby={errorId}
@@ -53,7 +53,7 @@ export const Select = ({ children, className, error, id, label, ...props }: Sele
   const errorId = error ? `${selectId}-error` : undefined;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <FieldLabel htmlFor={selectId}>{label}</FieldLabel>
       <select
         aria-describedby={errorId}

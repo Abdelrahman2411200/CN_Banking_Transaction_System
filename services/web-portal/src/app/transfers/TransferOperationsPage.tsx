@@ -384,15 +384,15 @@ export const TransferOperationsPage = ({
           <section className="grid gap-5 rounded-lg bg-surface-container-low p-4">
             <div className="rounded-lg bg-surface-container-lowest p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-title-lg font-black text-on-surface">Initiate Transfer</h3>
                   <p className="mt-2 text-body-sm text-on-surface-variant">
                     Transactional Saga Protocol v2.4.
                   </p>
                 </div>
-                <div className="grid gap-1 text-left sm:text-right">
+                <div className="grid min-w-0 max-w-full gap-1 text-left sm:text-right">
                   <span className="text-label-sm font-black uppercase text-on-surface-variant">Idempotency-Key</span>
-                  <code className="break-all font-mono text-xs font-bold text-primary">{idempotencyKey}</code>
+                  <code className="block max-w-full break-all font-mono text-xs font-bold text-primary">{idempotencyKey}</code>
                 </div>
               </div>
 

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "./AppShell";
@@ -22,5 +23,27 @@ describe("AppShell", () => {
     expect(screen.getAllByText("Dashboard")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Design System" })).toBeInTheDocument();
     expect(screen.getByText("Gallery content")).toBeInTheDocument();
+  });
+
+  it("exposes a keyboard skip target before shell navigation", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AppShell navItems={navItems} title="Design System">
+          <p>Gallery content</p>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    const skipLink = screen.getByRole("link", { name: /skip to workspace/i });
+    expect(skipLink).toHaveAttribute("href", "#portal-main");
+    expect(screen.getByRole("main", { name: /portal workspace/i })).toHaveAttribute("tabindex", "-1");
+
+    await user.tab();
+    expect(skipLink).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getAllByRole("link", { name: /dashboard/i })[0]).toHaveFocus();
   });
 });

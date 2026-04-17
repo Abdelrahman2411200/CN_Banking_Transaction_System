@@ -274,7 +274,7 @@ const AuthPage = ({ authClient, mode }: AuthPageProps & { mode: AuthMode }): Rea
                 rightAction={
                   <button
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                    className="absolute right-3 top-1/2 rounded-md text-on-surface-variant transition -translate-y-1/2 hover:text-on-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     onClick={() => setShowPassword((current) => !current)}
                     type="button"
                   >

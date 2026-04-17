@@ -498,12 +498,12 @@ const LedgerSummary = ({ overview, role }: LedgerSummaryProps): ReactElement => 
       </StatusChip>
     </div>
     {overview.ledgerStats ? (
-      <ContentGrid className="md:grid-cols-2 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <MetricCard label="Credits" status="success" value={formatMoney(overview.ledgerStats.totalCredits)} />
         <MetricCard label="Debits" status="warning" value={formatMoney(overview.ledgerStats.totalDebits)} />
         <MetricCard label="Net" status={overview.ledgerStats.net >= 0 ? "success" : "error"} value={formatMoney(overview.ledgerStats.net)} />
         <MetricCard label="Entries" status="info" value={String(overview.ledgerStats.entryCount)} />
-      </ContentGrid>
+      </div>
     ) : (
       <EmptyState description={overview.ledgerStatsNotice} title="Ledger stats not available" />
     )}

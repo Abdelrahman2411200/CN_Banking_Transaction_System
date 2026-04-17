@@ -10,7 +10,7 @@ export const MobileNav = ({ className, items, ...props }: MobileNavProps): React
   <nav
     aria-label="Mobile navigation"
     className={cn(
-      "fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 bg-surface-container-low p-2 shadow-[0_-12px_30px_rgb(42_52_57_/_0.06)] lg:hidden",
+      "fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 bg-surface-container-low p-2 shadow-[0_-12px_30px_rgb(42_52_57_/_0.06)] sm:grid-cols-7 lg:hidden",
       className
     )}
     {...props}
@@ -18,7 +18,7 @@ export const MobileNav = ({ className, items, ...props }: MobileNavProps): React
     {items.map((item) => (
       <NavItemLink
         className={cn(
-          "flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg px-2 text-center text-[11px] font-black text-on-surface-variant",
+          "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 text-center text-[11px] font-black text-on-surface-variant",
           item.active && "bg-primary-container text-on-primary-container"
         )}
         item={item}
@@ -27,7 +27,7 @@ export const MobileNav = ({ className, items, ...props }: MobileNavProps): React
         <span aria-hidden="true" className="material-symbols-outlined text-xl">
           {item.icon}
         </span>
-        <span className="max-w-full truncate">{item.label}</span>
+        <span className="max-w-full break-words leading-tight">{item.label}</span>
       </NavItemLink>
     ))}
   </nav>

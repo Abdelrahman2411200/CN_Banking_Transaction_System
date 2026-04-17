@@ -28,4 +28,32 @@ describe("overlay primitives", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps keyboard focus inside dialog and closes with Escape", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(
+      <>
+        <button type="button">Outside action</button>
+        <Dialog onClose={onClose} open title="Review exception">
+          <button type="button">Approve exception</button>
+        </Dialog>
+      </>
+    );
+
+    const closeButton = screen.getByRole("button", { name: /close dialog/i });
+    const approveButton = screen.getByRole("button", { name: /approve exception/i });
+
+    expect(closeButton).toHaveFocus();
+
+    await user.tab({ shift: true });
+    expect(approveButton).toHaveFocus();
+
+    await user.tab();
+    expect(closeButton).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
