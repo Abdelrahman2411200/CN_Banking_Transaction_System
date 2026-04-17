@@ -17,7 +17,7 @@
     "dev": "npm run -ws dev",
     "lint": "npm run -ws lint",
     "typecheck": "npm run -ws typecheck",
-    "test": "jest --forceExit --detectOpenHandles",
+    "test": "jest --runInBand --forceExit --detectOpenHandles",
     "test:unit": "jest --testPathPattern=\"__tests__\" --forceExit",
     "test:integration": "jest --testPathPattern=\"tests/integration\" --runInBand --forceExit",
     "test:integration:sam": "node --test tests/integration/health.test.mjs tests/integration/api-contract.test.mjs tests/integration/db-schema.test.mjs",
