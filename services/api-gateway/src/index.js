@@ -5,6 +5,7 @@ const { logger, requestLogger } = require('./logger');
 const { metricsMiddleware, metricsHandler } = require('./metrics');
 
 const securityHeaders  = require('./middleware/securityHeaders');
+const { corsMiddleware } = require('./middleware/cors');
 const authMiddleware   = require('./middleware/auth');
 const {
   globalLimiter,
@@ -23,6 +24,7 @@ const app = express();
 
 // 1. Security headers + request ID on every response
 app.use(securityHeaders);
+app.use(corsMiddleware());
 app.use(requestLogger);
 app.use(metricsMiddleware);
 app.get('/metrics', metricsHandler);
