@@ -45,7 +45,7 @@ router.post('/transfers', async (req: Request, res: Response) => {
       from_account_id,
       to_account_id,
       amount,
-      res.locals.requestId as string | undefined
+      req.headers['x-request-id'] as string | undefined
     );
 
     const response: CreateTransferResponse = {

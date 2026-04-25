@@ -135,7 +135,7 @@ describe('Account Service Routes', () => {
     it('returns 422 for insufficient funds', async () => {
       (pool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ id: accountId, status: 'active' }] });
+        .mockResolvedValueOnce({ rows: [{ id: accountId, status: 'active', kyc_status: 'verified' }] });
 
       const response = await request(app)
         .patch(`/v1/accounts/${accountId}/debit`)

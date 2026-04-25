@@ -66,6 +66,11 @@ const adminOnly = (req, res, next) =>
     : res.status(403).json({ error: 'forbidden' });
 
 // 6. Proxied routes — auth required on all
+
+// Debit/credit are SAGA-internal endpoints; block public access entirely
+app.patch('/v1/accounts/:id/debit',  (req, res) => res.status(403).json({ error: 'forbidden' }));
+app.patch('/v1/accounts/:id/credit', (req, res) => res.status(403).json({ error: 'forbidden' }));
+
 app.post('/v1/accounts/:id/freeze', authMiddleware, sensitiveLimiter, accountProxy);
 app.use('/v1/accounts', authMiddleware, accountLimiter, accountProxy);
 

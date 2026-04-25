@@ -49,6 +49,7 @@ export enum SagaStep {
 // Domain Models
 export interface Account {
   id: string;
+  owner_id: string | null;
   name: string;
   email: string;
   balance: string;

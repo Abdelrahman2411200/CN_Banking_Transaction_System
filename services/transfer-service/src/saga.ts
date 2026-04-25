@@ -16,6 +16,7 @@ import type {
 import { buildBaseEvent } from '@cn-banking/shared-types';
 
 const ACCOUNT_SERVICE_URL = process.env.ACCOUNT_SERVICE_URL || 'http://localhost:3001';
+const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET;
 
 type HttpClient = Pick<typeof axios, 'patch'>;
 
@@ -187,8 +188,11 @@ export class TransferSaga {
     }
   }
 
-  private buildRequestConfig(requestId?: string): { headers?: Record<string, string> } {
-    return requestId ? { headers: { 'x-request-id': requestId } } : {};
+  private buildRequestConfig(requestId?: string): { headers: Record<string, string> } {
+    const headers: Record<string, string> = {};
+    if (requestId) headers['x-request-id'] = requestId;
+    if (INTERNAL_SERVICE_SECRET) headers['x-internal-service-token'] = INTERNAL_SERVICE_SECRET;
+    return { headers };
   }
 
   private recordTerminalTransfer(status: 'completed' | 'failed' | 'compensated', amount: string, transferId: string): void {

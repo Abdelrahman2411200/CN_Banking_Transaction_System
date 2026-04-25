@@ -130,6 +130,11 @@ spec:
                 configMapKeyRef:
                   name: transfer-service-config
                   key: KAFKA_TOPIC_TRANSFER_FAILED
+            - name: INTERNAL_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: INTERNAL_SERVICE_SECRET
           resources:
             requests:
               cpu: 100m

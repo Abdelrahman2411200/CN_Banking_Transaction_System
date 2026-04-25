@@ -12,6 +12,15 @@ import type {
   GetAccountBalanceResponse,
   UpdateAccountResponse,
 } from '@cn-banking/shared-types';
+
+const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET;
+
+const requireServiceToken = (req: Request, res: Response): boolean => {
+  if (!INTERNAL_SERVICE_SECRET) return true; // not configured → skip (dev/test)
+  if (req.headers['x-internal-service-token'] === INTERNAL_SERVICE_SECRET) return true;
+  sendError(res, 403, 'FORBIDDEN', 'Internal endpoint');
+  return false;
+};
 import {
   buildBaseEvent,
   CreateAccountSchema,
@@ -58,9 +67,9 @@ const observeBalance = (balance: string): void => {
   accountBalanceUsd.observe(Number(balance));
 };
 
-const getExistingAccountStatus = async (id: string): Promise<{ id: string; status: AccountStatus } | null> => {
-  const result = await pool.query<{ id: string; status: AccountStatus }>(
-    'SELECT id, status FROM accounts WHERE id = $1',
+const getExistingAccountStatus = async (id: string): Promise<{ id: string; status: AccountStatus; kyc_status: AccountKycStatus } | null> => {
+  const result = await pool.query<{ id: string; status: AccountStatus; kyc_status: AccountKycStatus }>(
+    'SELECT id, status, kyc_status FROM accounts WHERE id = $1',
     [id]
   );
 
@@ -78,12 +87,13 @@ router.post('/accounts', async (req: Request, res: Response) => {
 
   try {
     const { name, email, initial_balance } = validation.data;
+    const ownerId = (req.headers['x-user-id'] as string | undefined) ?? null;
     await client.query('BEGIN');
 
     const query = `
-      INSERT INTO accounts (name, email, balance, kyc_status, status)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+      INSERT INTO accounts (name, email, balance, kyc_status, status, owner_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
     const result = await client.query<Account>(query, [
@@ -92,6 +102,7 @@ router.post('/accounts', async (req: Request, res: Response) => {
       initial_balance ?? '0.00',
       AccountKycStatus.PENDING,
       AccountStatus.ACTIVE,
+      ownerId,
     ]);
 
     const account = result.rows[0];
@@ -137,7 +148,7 @@ router.get('/accounts/:id', async (req: Request, res: Response) => {
 
   try {
     const query = `
-      SELECT id, name, email, balance, kyc_status, status, created_at, updated_at
+      SELECT id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
       FROM accounts
       WHERE id = $1
     `;
@@ -147,6 +158,12 @@ router.get('/accounts/:id', async (req: Request, res: Response) => {
 
     if (!account) {
       return sendError(res, 404, 'NOT_FOUND', 'Account not found');
+    }
+
+    const requestingUser = req.headers['x-user-id'] as string | undefined;
+    const requestingRole = req.headers['x-user-role'] as string | undefined;
+    if (requestingRole !== 'admin' && account.owner_id && account.owner_id !== requestingUser) {
+      return sendError(res, 403, 'FORBIDDEN', 'Access denied');
     }
 
     observeBalance(account.balance);
@@ -169,21 +186,27 @@ router.get('/accounts/:id/balance', async (req: Request, res: Response) => {
 
   try {
     const query = `
-      SELECT id, balance
+      SELECT id, owner_id, balance
       FROM accounts
       WHERE id = $1
     `;
 
-    const result = await pool.query<{ id: string; balance: string }>(query, [id]);
+    const result = await pool.query<{ id: string; owner_id: string | null; balance: string }>(query, [id]);
     const row = result.rows[0];
 
     if (!row) {
       return sendError(res, 404, 'NOT_FOUND', 'Account not found');
     }
 
+    const requestingUser = req.headers['x-user-id'] as string | undefined;
+    const requestingRole = req.headers['x-user-role'] as string | undefined;
+    if (requestingRole !== 'admin' && row.owner_id && row.owner_id !== requestingUser) {
+      return sendError(res, 403, 'FORBIDDEN', 'Access denied');
+    }
+
     const response: GetAccountBalanceResponse = {
       success: true,
-      data: row,
+      data: { id: row.id, balance: row.balance },
     };
     observeBalance(row.balance);
     return res.status(200).json(response);
@@ -212,7 +235,7 @@ router.patch('/accounts/:id/kyc', async (req: Request, res: Response) => {
       UPDATE accounts
       SET kyc_status = $1
       WHERE id = $2
-      RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+      RETURNING id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
     const result = await pool.query<Account>(query, [kyc_status, id]);
@@ -234,8 +257,10 @@ router.patch('/accounts/:id/kyc', async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /accounts/:id/debit - Debit account
+// PATCH /accounts/:id/debit - Debit account (internal SAGA use only)
 router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
+  if (!requireServiceToken(req, res)) return;
+
   const id = parseAccountId(req, res);
   if (!id) {
     return;
@@ -252,11 +277,11 @@ router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
     const query = `
       UPDATE accounts
       SET balance = balance - $1
-      WHERE id = $2 AND status <> $3 AND balance >= $1
-      RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+      WHERE id = $2 AND status <> $3 AND kyc_status = $4 AND balance >= $1
+      RETURNING id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
-    const result = await pool.query<Account>(query, [amount, id, AccountStatus.SUSPENDED]);
+    const result = await pool.query<Account>(query, [amount, id, AccountStatus.SUSPENDED, AccountKycStatus.VERIFIED]);
     const account = result.rows[0];
 
     if (!account) {
@@ -267,6 +292,10 @@ router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
 
       if (existingAccount.status === AccountStatus.SUSPENDED) {
         return sendError(res, 423, 'ACCOUNT_FROZEN', 'Account is frozen');
+      }
+
+      if (existingAccount.kyc_status !== AccountKycStatus.VERIFIED) {
+        return sendError(res, 422, 'KYC_NOT_VERIFIED', 'Account KYC is not verified');
       }
 
       return sendError(res, 422, 'INSUFFICIENT_FUNDS', 'Insufficient funds for debit');
@@ -284,8 +313,10 @@ router.patch('/accounts/:id/debit', async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /accounts/:id/credit - Credit account
+// PATCH /accounts/:id/credit - Credit account (internal SAGA use only)
 router.patch('/accounts/:id/credit', async (req: Request, res: Response) => {
+  if (!requireServiceToken(req, res)) return;
+
   const id = parseAccountId(req, res);
   if (!id) {
     return;
@@ -303,7 +334,7 @@ router.patch('/accounts/:id/credit', async (req: Request, res: Response) => {
       UPDATE accounts
       SET balance = balance + $1
       WHERE id = $2 AND status <> $3
-      RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+      RETURNING id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
     `;
 
     const result = await pool.query<Account>(query, [amount, id, AccountStatus.SUSPENDED]);
@@ -343,7 +374,7 @@ router.post('/accounts/:id/freeze', async (req: Request, res: Response) => {
         UPDATE accounts
         SET status = $1
         WHERE id = $2
-        RETURNING id, name, email, balance, kyc_status, status, created_at, updated_at
+        RETURNING id, owner_id, name, email, balance, kyc_status, status, created_at, updated_at
       `,
       [AccountStatus.SUSPENDED, id]
     );

@@ -115,6 +115,11 @@ spec:
                 configMapKeyRef:
                   name: account-service-config
                   key: KAFKA_TOPIC_ACCOUNT_CREATED
+            - name: INTERNAL_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: INTERNAL_SERVICE_SECRET
           resources:
             requests:
               cpu: 100m

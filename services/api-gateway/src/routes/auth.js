@@ -33,13 +33,11 @@ const generateRefreshToken = (userId) =>
 // POST /v1/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role = 'customer' } = req.body;
+    const { email, password } = req.body;
+    const role = 'customer';
 
     if (!email || !password)
       return res.status(400).json({ error: 'email_and_password_required' });
-
-    if (!['customer', 'admin'].includes(role))
-      return res.status(400).json({ error: 'invalid_role' });
 
     // Check for duplicate email
     const existingId = await redis.get(`auth:email:${email}`);

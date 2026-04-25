@@ -153,6 +153,7 @@ services:
       DB_NAME: ${ACCOUNTS_DB_NAME:-accounts_db}
       DB_USER: ${ACCOUNTS_DB_USER:-accounts_user}
       DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD:-accounts_pass}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET is required}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
       KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
@@ -185,6 +186,7 @@ services:
       DB_USER: ${TRANSFERS_DB_USER:-transfers_user}
       DB_PASSWORD: ${TRANSFERS_DB_PASSWORD:-transfers_pass}
       ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service:3001}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET is required}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-cn-banking-platform}
       KAFKA_GROUP_ID_PREFIX: ${KAFKA_GROUP_ID_PREFIX:-cn-banking}
