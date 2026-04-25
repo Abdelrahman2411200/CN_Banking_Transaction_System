@@ -13,6 +13,7 @@ import {
   type LedgerEntryType,
   type LedgerStats
 } from "../../lib/api/ledger";
+import { firstZodMessage, ledgerIdSchema } from "../../lib/forms/schemas";
 import type { AuthSession } from "../auth/session";
 import { readStoredSession } from "../auth/session";
 
@@ -50,8 +51,6 @@ const defaultLedgerClient: LedgerClient = {
   getTransferEntries: (transferId, session) => getTransferLedger(transferId, { session })
 };
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 const moneyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 2,
@@ -73,8 +72,11 @@ const timestampFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric"
 });
 
-export const validateLedgerId = (value: string, label: "account" | "transfer"): string | undefined =>
-  uuidPattern.test(value.trim()) ? undefined : `Enter a valid ${label} UUID.`;
+export const validateLedgerId = (value: string, label: "account" | "transfer"): string | undefined => {
+  const result = ledgerIdSchema(label).safeParse(value);
+
+  return result.success ? undefined : firstZodMessage(result.error);
+};
 
 const formatMoney = (value: number | string): string => moneyFormatter.format(Number(value || 0));
 

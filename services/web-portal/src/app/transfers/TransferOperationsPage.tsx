@@ -13,6 +13,13 @@ import {
   type TransferRecord,
   type TransferStatus
 } from "../../lib/api/transfers";
+import {
+  firstZodMessage,
+  toCreateTransferInput,
+  transferFormSchema,
+  transferIdSchema,
+  zodFieldErrors
+} from "../../lib/forms/schemas";
 import type { AuthSession } from "../auth/session";
 import { readStoredSession } from "../auth/session";
 
@@ -62,9 +69,6 @@ const defaultTransferClient: TransferClient = {
   get: (transferId, session) => getTransfer(transferId, { session })
 };
 
-const accountIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const moneyPattern = /^\d+(\.\d{1,2})?$/;
-
 const moneyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 2,
@@ -81,32 +85,16 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export const validateTransferRequest = (fields: TransferFields): TransferErrors => {
-  const errors: TransferErrors = {};
-  const fromAccountId = fields.fromAccountId.trim();
-  const toAccountId = fields.toAccountId.trim();
-  const amount = fields.amount.trim();
+  const result = transferFormSchema.safeParse(fields);
 
-  if (!accountIdPattern.test(fromAccountId)) {
-    errors.fromAccountId = "Enter a valid source account UUID.";
-  }
-
-  if (!accountIdPattern.test(toAccountId)) {
-    errors.toAccountId = "Enter a valid destination account UUID.";
-  }
-
-  if (fromAccountId && toAccountId && fromAccountId.toLowerCase() === toAccountId.toLowerCase()) {
-    errors.toAccountId = "Destination must use a different account UUID.";
-  }
-
-  if (!moneyPattern.test(amount) || Number(amount) <= 0) {
-    errors.amount = "Use a positive USD amount with up to 2 decimals.";
-  }
-
-  return errors;
+  return result.success ? {} : zodFieldErrors<keyof TransferErrors>(result.error);
 };
 
-export const validateTransferId = (transferId: string): string | undefined =>
-  accountIdPattern.test(transferId.trim()) ? undefined : "Enter a valid transfer UUID.";
+export const validateTransferId = (transferId: string): string | undefined => {
+  const result = transferIdSchema.safeParse(transferId);
+
+  return result.success ? undefined : firstZodMessage(result.error);
+};
 
 const formatMoney = (value: string): string => moneyFormatter.format(Number(value || 0));
 
@@ -290,11 +278,7 @@ export const TransferOperationsPage = ({
     setMutation("create");
     const keyForRequest = idempotencyKey;
     const result = await transferClient.create(
-      {
-        amount: fields.amount.trim(),
-        fromAccountId: fields.fromAccountId.trim(),
-        toAccountId: fields.toAccountId.trim()
-      },
+      toCreateTransferInput(fields),
       session,
       keyForRequest
     );

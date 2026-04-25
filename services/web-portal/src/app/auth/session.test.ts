@@ -28,6 +28,16 @@ describe("auth session", () => {
     });
   });
 
+  it("parses the first valid role from role arrays and rejects unsupported roles", () => {
+    expect(parseJwtSession(makeToken({ roles: ["auditor", "operator"], sub: "user-3" }))).toMatchObject({
+      role: "operator",
+      subject: "user-3"
+    });
+
+    expect(parseJwtSession(makeToken({ role: "auditor", sub: "user-4" }))).toBeNull();
+    expect(parseJwtSession("not-a-token")).toBeNull();
+  });
+
   it("keeps the access token in memory while persisting refresh metadata", () => {
     const session = {
       accessToken: makeToken({ role: "customer", sub: "user-2" }),
@@ -46,5 +56,23 @@ describe("auth session", () => {
 
     expect(readStoredSession(window.sessionStorage)).toBeNull();
     expect(readRefreshToken(window.sessionStorage)).toBe("refresh-token");
+  });
+
+  it("clears memory and persisted refresh metadata", () => {
+    writeStoredSession(
+      {
+        accessToken: makeToken({ role: "admin", sub: "user-5" }),
+        refreshToken: "refresh-token",
+        role: "admin",
+        subject: "user-5"
+      },
+      window.sessionStorage
+    );
+
+    clearStoredSession(window.sessionStorage);
+
+    expect(readStoredSession(window.sessionStorage)).toBeNull();
+    expect(readRefreshToken(window.sessionStorage)).toBeNull();
+    expect(window.sessionStorage.getItem(authStorageKey)).toBeNull();
   });
 });

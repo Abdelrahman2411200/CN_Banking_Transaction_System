@@ -14,6 +14,13 @@ import {
   type AccountKycStatus,
   type AccountRecord
 } from "../../lib/api/accounts";
+import {
+  accountIdSchema,
+  createAccountFormSchema,
+  firstZodMessage,
+  toCreateAccountInput,
+  zodFieldErrors
+} from "../../lib/forms/schemas";
 import type { AuthSession, UserRole } from "../auth/session";
 import { readStoredSession } from "../auth/session";
 
@@ -64,10 +71,6 @@ const defaultAccountClient: AccountClient = {
   updateKyc: (accountId, kycStatus, session) => updateAccountKyc({ accountId, kycStatus }, { session })
 };
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const moneyPattern = /^\d+(\.\d{1,2})?$/;
-const accountIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 const moneyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 2,
@@ -84,25 +87,16 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export const validateCreateAccount = (fields: CreateFields): CreateErrors => {
-  const errors: CreateErrors = {};
+  const result = createAccountFormSchema.safeParse(fields);
 
-  if (fields.name.trim().length < 2) {
-    errors.name = "Enter the account holder's legal name.";
-  }
-
-  if (!emailPattern.test(fields.email.trim())) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  if (!moneyPattern.test(fields.initialBalance.trim())) {
-    errors.initialBalance = "Use a non-negative USD amount with up to 2 decimals.";
-  }
-
-  return errors;
+  return result.success ? {} : zodFieldErrors<keyof CreateErrors>(result.error);
 };
 
-export const validateAccountId = (accountId: string): string | undefined =>
-  accountIdPattern.test(accountId.trim()) ? undefined : "Enter a valid account UUID.";
+export const validateAccountId = (accountId: string): string | undefined => {
+  const result = accountIdSchema.safeParse(accountId);
+
+  return result.success ? undefined : firstZodMessage(result.error);
+};
 
 const formatMoney = (value: string): string => moneyFormatter.format(Number(value || 0));
 
@@ -254,9 +248,7 @@ export const AccountManagementPage = ({
     setMutation("create");
     const result = await accountClient.create(
       {
-        email: createFields.email.trim(),
-        initialBalance: createFields.initialBalance.trim(),
-        name: createFields.name.trim()
+        ...toCreateAccountInput(createFields)
       },
       session
     );

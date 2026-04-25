@@ -25,6 +25,21 @@ describe("DataTable", () => {
     expect(screen.getByText("No records available")).toBeInTheDocument();
   });
 
+  it("renders error state", () => {
+    render(
+      <DataTable
+        caption="Transfers"
+        columns={columns}
+        error="Gateway returned service_degraded."
+        getRowKey={(row) => row.id}
+        rows={[]}
+      />
+    );
+
+    expect(screen.getByText("Data unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Gateway returned service_degraded.")).toBeInTheDocument();
+  });
+
   it("renders row data", () => {
     render(
       <DataTable

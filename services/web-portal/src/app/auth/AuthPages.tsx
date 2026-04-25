@@ -12,6 +12,13 @@ import {
   type RegisterResponse
 } from "../../lib/api/auth";
 import { cn } from "../../lib/cn";
+import {
+  loginFormSchema,
+  registerFormSchema,
+  toLoginRequest,
+  toRegisterRequest,
+  zodFieldErrors
+} from "../../lib/forms/schemas";
 import type { AuthSession, UserRole } from "./session";
 
 export interface AuthClient {
@@ -41,7 +48,6 @@ const defaultAuthClient: AuthClient = {
   register: registerUser
 };
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const adminPaths = ["/fraud", "/notifications", "/observability", "/platform-health"];
 
 export const getPostLoginPath = (role: UserRole, from?: string): string => {
@@ -144,21 +150,11 @@ const AuthPage = ({ authClient, mode }: AuthPageProps & { mode: AuthMode }): Rea
   );
 
   const validate = (): FieldErrors => {
-    const errors: FieldErrors = {};
+    const result = isRegister
+      ? registerFormSchema.safeParse({ email, fullName, password, role })
+      : loginFormSchema.safeParse({ email, password });
 
-    if (isRegister && fullName.trim().length < 2) {
-      errors.fullName = "Enter the registered legal name for this access profile.";
-    }
-
-    if (!emailPattern.test(email.trim())) {
-      errors.email = "Enter a valid institutional email address.";
-    }
-
-    if (password.length < 8) {
-      errors.password = "Access keys must be at least 8 characters.";
-    }
-
-    return errors;
+    return result.success ? {} : zodFieldErrors<keyof FieldErrors>(result.error);
   };
 
   const toggleTheme = (): void => {
@@ -180,7 +176,7 @@ const AuthPage = ({ authClient, mode }: AuthPageProps & { mode: AuthMode }): Rea
 
     try {
       if (isRegister) {
-        const result = await client.register({ email: email.trim(), password, role });
+        const result = await client.register(toRegisterRequest({ email, fullName, password, role }));
 
         if (!result.ok) {
           setStatusMessage(messageForFailure(result));
@@ -194,7 +190,7 @@ const AuthPage = ({ authClient, mode }: AuthPageProps & { mode: AuthMode }): Rea
         return;
       }
 
-      const result = await client.login({ email: email.trim(), password });
+      const result = await client.login(toLoginRequest({ email, password }));
 
       if (!result.ok) {
         setStatusMessage(messageForFailure(result));

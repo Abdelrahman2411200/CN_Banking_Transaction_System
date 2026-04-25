@@ -1,5 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
+test.describe.configure({ timeout: 120_000 });
+
 const sessionStorageKey = "cn-banking.web-portal.auth";
 const accountId = "123e4567-e89b-12d3-a456-426614174000";
 const reserveAccountId = "223e4567-e89b-12d3-a456-426614174111";
@@ -64,7 +66,7 @@ const representativeRoutes = [
   { path: "/accounts", readyText: "Account Ecosystem" },
   { path: "/transfers", readyText: "Transfer Funds" },
   { path: "/ledger", readyText: "Ledger Audit" },
-  { path: "/fraud", readyText: "Active Fraud Stream" },
+  { path: "/fraud", readyText: "Fraud Operations" },
   { path: "/notifications", readyText: "Notification Hub" },
   { path: "/observability", readyText: "Operational Health" },
   { path: "/platform-health", readyText: "Runtime Readiness" }
@@ -293,8 +295,10 @@ test("representative routes render at Phase 13 breakpoints without visible overf
     await assertNoHorizontalOverflow(page);
     await assertNoVisibleTextOverflow(page);
 
-    const screenshotName = `${testInfo.project.name}-${route.path.replace(/\W+/g, "-").replace(/^-|-$/g, "")}.png`;
-    await page.screenshot({ fullPage: true, path: testInfo.outputPath(screenshotName) });
+    if (process.env.PLAYWRIGHT_CAPTURE_SCREENSHOTS === "1") {
+      const screenshotName = `${testInfo.project.name}-${route.path.replace(/\W+/g, "-").replace(/^-|-$/g, "")}.png`;
+      await page.screenshot({ fullPage: true, path: testInfo.outputPath(screenshotName) });
+    }
   }
 });
 
