@@ -226,7 +226,7 @@ describe("PortalRoutes", () => {
     renderRoute("/observability", sessionFor("operator"));
 
     expect(await screen.findByRole("heading", { name: "Operational Health" })).toBeInTheDocument();
-    expect(screen.getByText("Admin operational detail hidden")).toBeInTheDocument();
+    expect(await screen.findByText("Admin operational detail hidden")).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("link", { name: /observability/i })
@@ -244,7 +244,7 @@ describe("PortalRoutes", () => {
     renderRoute("/platform-health", sessionFor("admin"));
 
     expect(await screen.findByRole("heading", { name: "Runtime Readiness" })).toBeInTheDocument();
-    expect(screen.getByText("Unsupported Platform Signals")).toBeInTheDocument();
+    expect(await screen.findByText("Unsupported Platform Signals")).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("link", { name: /platform health/i })

@@ -12,7 +12,8 @@ $services = @(
     "transfer-service",
     "ledger-service",
     "fraud-service",
-    "notification-service"
+    "notification-service",
+    "web-portal"
 )
 
 foreach ($service in $services) {

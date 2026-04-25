@@ -4,7 +4,8 @@ All Kubernetes resources for Phase 4 live under `infra/k8s/` and deploy to names
 
 ## Conventions
 
-- `api-gateway` is the only externally routed service.
+- `api-gateway` is the only externally routed backend service.
+- `web-portal` is served as a static frontend at `portal.${PUBLIC_DOMAIN}` and uses runtime `/config.js` to call the gateway at `${PUBLIC_DOMAIN}`.
 - Internal services use ClusterIP.
 - Secret values must come from `secretKeyRef`.
 - Non-secret configuration must come from `configMapKeyRef`.
@@ -21,6 +22,7 @@ kubectl apply --dry-run=client -f infra/k8s/namespace.yaml
 kubectl apply --dry-run=client -f infra/k8s/
 kubectl get pods -n banking
 kubectl rollout status deployment/api-gateway -n banking --timeout=5m
+kubectl rollout status deployment/web-portal -n banking --timeout=5m
 ```
 
 Replace placeholder image names, ACM certificate ARN, domain, and secret values before applying to a real cluster. Use a network-policy-capable CNI before relying on pod-to-pod isolation.

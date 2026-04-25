@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 env:
-  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service"
+  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service web-portal"
 
 jobs:
   lint:
@@ -42,6 +42,24 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
 
+  web-portal:
+    name: Web Portal Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+      - run: npm ci
+      - run: npm run lint --workspace @cn-banking/web-portal
+      - run: npm run typecheck --workspace @cn-banking/web-portal
+      - run: npm test --workspace @cn-banking/web-portal
+      - run: npx playwright install --with-deps chromium
+        working-directory: services/web-portal
+      - run: npm run test:e2e --workspace @cn-banking/web-portal
+      - run: npm run build --workspace @cn-banking/web-portal
+
   audit:
     name: npm Audit
     runs-on: ubuntu-latest
@@ -67,6 +85,7 @@ jobs:
           - ledger-service
           - fraud-service
           - notification-service
+          - web-portal
     steps:
       - uses: actions/checkout@v4
       - name: Build image

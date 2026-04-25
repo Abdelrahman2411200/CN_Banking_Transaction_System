@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-portal
+  namespace: banking
+  labels:
+    app: web-portal
+spec:
+  type: ClusterIP
+  selector:
+    app: web-portal
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

@@ -31,3 +31,23 @@ for (const [service, port, workspace] of services) {
     assert.doesNotMatch(dockerfile, /USER\s+appuser/);
   });
 }
+
+test('web-portal Dockerfile uses the Phase 15 static portal image contract', () => {
+  const dockerfile = readFileSync('services/web-portal/Dockerfile', 'utf8');
+  const nginxConfig = readFileSync('services/web-portal/nginx.conf', 'utf8');
+
+  assert.match(dockerfile, /FROM node:20-alpine AS builder/);
+  assert.match(dockerfile, /FROM nginxinc\/nginx-unprivileged:1\.27-alpine AS runner/);
+  assert.match(dockerfile, /npm ci/);
+  assert.match(dockerfile, /npm run build --workspace @cn-banking\/web-portal/);
+  assert.match(dockerfile, /COPY --from=builder \/app\/services\/web-portal\/dist \/usr\/share\/nginx\/html/);
+  assert.match(dockerfile, /EXPOSE 8080/);
+  assert.match(dockerfile, /HEALTHCHECK[\s\S]+http:\/\/127\.0\.0\.1:8080\/healthz/);
+  assert.match(dockerfile, /CMD \["nginx", "-g", "daemon off;"\]/);
+  assert.doesNotMatch(dockerfile, /COPY\s+.*\.env/i);
+
+  assert.match(nginxConfig, /Content-Security-Policy/);
+  assert.match(nginxConfig, /location = \/config\.js[\s\S]+Cache-Control "no-store"/);
+  assert.match(nginxConfig, /location \/assets\/[\s\S]+max-age=31536000, immutable/);
+  assert.match(nginxConfig, /try_files \$uri \$uri\/ \/index\.html/);
+});

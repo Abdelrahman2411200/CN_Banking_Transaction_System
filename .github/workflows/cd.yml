@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 env:
-  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service"
+  SERVICES: "api-gateway account-service transfer-service ledger-service fraud-service notification-service web-portal"
   IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
   ECR_REGISTRY: ${{ vars.ECR_REGISTRY || secrets.ECR_REGISTRY }}
   ECR_REPOSITORY_PREFIX: cn-banking-prod
