@@ -1,4 +1,5 @@
 export type TokenSource = "vault_protocol" | "static_export" | "derived";
+export type MigrationDecisionSource = "FRONTEND_IMPLEMENTATION_PLAN.md" | "vault_protocol/DESIGN.md";
 
 export interface DesignToken {
   name: string;
@@ -7,6 +8,12 @@ export interface DesignToken {
   darkValue?: string;
   usage: string;
   source: TokenSource;
+}
+
+export interface MigrationDesignDecision {
+  principle: string;
+  source: MigrationDecisionSource;
+  reactImplementation: string;
 }
 
 export const surfaceTokens = {
@@ -144,4 +151,32 @@ export const designTokens: DesignToken[] = [
     usage: "Semantic interaction and status color",
     source: "vault_protocol" as const
   }))
+];
+
+export const migrationDesignDecisions: MigrationDesignDecision[] = [
+  {
+    principle: "Inter typography remains the only type family for operational screens.",
+    source: "vault_protocol/DESIGN.md",
+    reactImplementation: "Tailwind font families and typographyTokens"
+  },
+  {
+    principle: "Tonal surface hierarchy replaces decorative divider lines.",
+    source: "vault_protocol/DESIGN.md",
+    reactImplementation: "surface-container tokens plus PageHeader, ContentGrid, DataTable, and AppShell composition"
+  },
+  {
+    principle: "Semantic colors carry status meaning across light and dark themes.",
+    source: "vault_protocol/DESIGN.md",
+    reactImplementation: "semanticTokens, darkSemanticTokens, statusSemantics, and StatusChip"
+  },
+  {
+    principle: "Static exports are visual references until parity acceptance, never behavioral source code.",
+    source: "FRONTEND_IMPLEMENTATION_PLAN.md",
+    reactImplementation: "screenReferences, parityDecisions, and React pages connected through the gateway API client"
+  },
+  {
+    principle: "Browser integrations must terminate at the API gateway boundary.",
+    source: "FRONTEND_IMPLEMENTATION_PLAN.md",
+    reactImplementation: "Gateway API client in services/web-portal/src/lib/api/client.ts and feature API modules"
+  }
 ];

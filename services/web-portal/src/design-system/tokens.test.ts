@@ -4,6 +4,7 @@ import {
   darkSemanticTokens,
   darkSurfaceTokens,
   designTokens,
+  migrationDesignDecisions,
   semanticTokens,
   surfaceTokens,
   typographyTokens
@@ -60,6 +61,15 @@ describe("design tokens", () => {
   it("defines the required editorial typography scale", () => {
     expect(Object.keys(typographyTokens)).toEqual(
       expect.arrayContaining(["display-lg", "headline-sm", "title-sm", "body-md", "label-sm"])
+    );
+  });
+
+  it("records Phase 16 migration decisions in React-owned design metadata", () => {
+    expect(migrationDesignDecisions.map((decision) => decision.source)).toEqual(
+      expect.arrayContaining(["FRONTEND_IMPLEMENTATION_PLAN.md", "vault_protocol/DESIGN.md"])
+    );
+    expect(migrationDesignDecisions.map((decision) => decision.reactImplementation).join(" ")).toContain(
+      "gateway API client"
     );
   });
 

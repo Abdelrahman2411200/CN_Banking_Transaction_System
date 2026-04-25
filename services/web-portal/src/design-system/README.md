@@ -13,3 +13,4 @@ The Phase 1 design system extracts the Sovereign Ledger visual language from `va
 - Hard section dividers are replaced by tonal shifts and spacing unless a ghost border is needed for field affordance or accessibility.
 - Light and dark mode use one component implementation with root theme classes.
 - Material Symbols are loaded once from the app shell during Phase 1.
+- Phase 16 migration decisions are encoded in `migrationDesignDecisions` so static export cleanup stays tied to React-owned tokens, primitives, layout components, and gateway API modules.

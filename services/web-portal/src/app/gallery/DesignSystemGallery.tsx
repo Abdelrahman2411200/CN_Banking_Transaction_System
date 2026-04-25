@@ -5,7 +5,7 @@ import { Button, Input, Select, StatusChip, Toast } from "../../components/primi
 import { AccountShellReference } from "./AccountShellReference";
 import { GatewayHealthCard } from "./GatewayHealthCard";
 import { parityDecisions } from "./parityDecisions";
-import { canonicalScreenReferences } from "./screenReferences";
+import { canonicalScreenReferences, screenFamilyVariantChoices } from "./screenReferences";
 
 export const DesignSystemGallery = (): ReactElement => {
   const [theme, setTheme] = useState<ThemeMode>("light");
@@ -27,7 +27,7 @@ export const DesignSystemGallery = (): ReactElement => {
             </p>
             <h1 className="text-3xl font-black tracking-normal text-on-surface">Design System Gallery</h1>
             <p className="max-w-2xl text-sm leading-6 text-on-surface-variant">
-              Manual parity target for authentication and account management references.
+              Manual parity target for static export migration into gateway-backed React screens.
             </p>
           </div>
           <Button onClick={toggleTheme} variant="secondary">
@@ -58,6 +58,19 @@ export const DesignSystemGallery = (): ReactElement => {
                 <StatusChip status={reference.theme === "dark" ? "neutral" : "info"}>{reference.theme}</StatusChip>
                 <h3 className="mt-3 text-lg font-black text-on-surface">{reference.folder}</h3>
                 <p className="mt-2 text-sm text-on-surface-variant">{reference.patternsUsed.join(", ")}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="grid gap-3 rounded-lg bg-surface-container-low p-4">
+          <h2 className="text-xl font-black text-on-surface">Phase 16 Variant Choices</h2>
+          <div className="grid gap-2 md:grid-cols-2">
+            {screenFamilyVariantChoices.map((choice) => (
+              <article className="rounded-lg bg-surface-container-lowest p-4" key={choice.screenFamily}>
+                <StatusChip status="info">{choice.screenFamily}</StatusChip>
+                <h3 className="mt-3 text-lg font-black text-on-surface">{choice.selectedVariant}</h3>
+                <p className="mt-2 text-sm text-on-surface-variant">{choice.routeScope}</p>
+                <p className="mt-2 text-sm text-on-surface-variant">{choice.rationale}</p>
               </article>
             ))}
           </div>

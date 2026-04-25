@@ -9,6 +9,15 @@ Phase 1 requires manual reviewer acceptance for the reference gallery.
 - `account_management_1`
 - `account_management_dark`
 
+## Phase 16 Migration
+
+Full static-export migration tracking now lives in `../../../PARITY_CHECKLIST.md` and `screenReferences.ts`.
+The checklist records the selected static variant for every screen family, while `screenReferences.ts`
+keeps the same data available to React tests and the design gallery.
+
+Until reviewer acceptance, original `code.html` and `screen.png` files remain active visual references.
+After acceptance, they should be marked archival and React components remain the implementation source of truth.
+
 ## Acceptance Checklist
 
 - Light and dark themes use the same component implementations.

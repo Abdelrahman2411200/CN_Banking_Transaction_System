@@ -35,5 +35,26 @@ export const parityDecisions: ParityDecision[] = [
     decision: "reject",
     reason: "Theme must switch through the root class with one component implementation.",
     replacement: "Shared light/dark theme token maps"
+  },
+  {
+    reference: "all code.html exports",
+    pattern: "Screen-local markup and Tailwind utility duplication",
+    decision: "reject",
+    reason: "React components are now the implementation source of truth for behavior, routing, state, and gateway access.",
+    replacement: "services/web-portal/src app pages, layout components, primitives, and API modules"
+  },
+  {
+    reference: "all screen.png exports",
+    pattern: "Visual composition snapshots",
+    decision: "accept",
+    reason: "Screenshots remain useful for reviewer parity checks while React acceptance is pending.",
+    replacement: "Phase 16 parity checklist records the acceptance state by screen family"
+  },
+  {
+    reference: "customer_dashboard_*, transfers_*, ledger_*, fraud_*, notifications_*, observability_*, platform_health_*",
+    pattern: "Multiple static variants per family",
+    decision: "adapt",
+    reason: "Each screen family needs one selected composition plus supporting variants for theme and interaction nuance.",
+    replacement: "screenFamilyVariantChoices"
   }
 ];
